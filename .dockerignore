@@ -1,0 +1,14 @@
+# Keep the build context small and prevent local build output or secrets from
+# ending up in an image layer.
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+.git/
+.github/
+tests/
+.env
+*.user
+docs/
+README.md

@@ -244,92 +244,67 @@ curl -X PATCH http://localhost:8080/api/repair-orders/7/status \
 
 ## Design decisions
 
-### Why Clean Architecture for a project this size?
+### Clean Architecture for four entities?
 
-Strictly speaking, four entities do not need four projects. The layering is here
-because it makes the dependency direction *checkable*: `RepairShop.Domain.csproj` has
-no `PackageReference` at all, so it is structurally impossible for a database concern
-to leak into the business rules. That constraint is what pays off as a codebase grows —
-and it is the property a reviewer can verify in ten seconds.
+Strictly speaking unnecessary — but it makes the dependency direction *checkable*:
+`RepairShop.Domain.csproj` has no `PackageReference` at all, so a database concern
+cannot structurally leak into the business rules. The cost is honest: more projects,
+more DI wiring, one extra mapping step. Worth it because this domain has real rules;
+for a pure CRUD forwarder it would not be.
 
-The cost is honest too: more projects, more DI wiring, one extra mapping step. Worth it
-here because the domain has real rules; for a pure CRUD forwarder it would not be.
+### A dedicated status endpoint instead of `PUT`?
 
-### Why a dedicated status endpoint instead of `PUT`?
+A status is not an editable attribute but a *transition* that either is or is not
+allowed. A generic `PUT` with a `status` field would let a client set any value and
+force the server to retro-validate it. `PATCH /{id}/status` maps directly onto
+`RepairOrder.TransitionTo()` and keeps the audit log meaningful.
 
-`PATCH /api/repair-orders/{id}/status` exists because a status is not an editable
-attribute — it is a *transition* that either is or is not allowed. A generic `PUT` with
-a `status` field would invite a client to set any value and force the server to
-retro-validate it. The dedicated endpoint makes the operation explicit, keeps the audit
-log meaningful, and maps naturally onto `RepairOrder.TransitionTo()`.
+### A stored procedure for the revenue report?
 
-### Why a stored procedure for the revenue report, when everything else is EF Core?
+The report aggregates across all four tables and pivots labour against parts in one
+pass — in LINQ a group-join with two conditional sums, neither readable nor tunable,
+returning a report row that is not an aggregate. As `dbo.usp_GetRevenueByCustomer` it
+is reviewable as SQL, has a stable plan, and ships in a
+[migration](src/RepairShop.Infrastructure/Persistence/Migrations/20260718191028_AddRevenueByCustomerProcedure.cs)
+rather than being applied by hand. The deliberate exception, not the house style: raw
+SQL for reporting, EF Core for the write model.
 
-The report aggregates across all four tables and pivots labour against parts in a
-single pass. Expressed in LINQ that becomes a group-join with two conditional sums
-whose generated SQL is neither readable nor tunable, and the result shape has nothing
-to do with the entity model — it is a report row, not an aggregate.
+### DTOs instead of entities?
 
-As `dbo.usp_GetRevenueByCustomer` the query is reviewable as SQL, has a stable
-execution plan, and can be indexed for by whoever owns the database. The procedure is
-versioned in a migration
-([`AddRevenueByCustomerProcedure`](src/RepairShop.Infrastructure/Persistence/Migrations/20260718191028_AddRevenueByCustomerProcedure.cs)),
-not applied by hand in SSMS — otherwise a fresh clone would come up with a database the
-API cannot query.
+The entities are encapsulated — private setters, private constructors — so serialising
+them out and binding them back in would open exactly the doors that keep the status
+rules enforceable. It also decouples the public contract from the schema, and avoids
+navigation properties serialising into cycles or a data leak. Mapping is hand-written:
+with four entities that is shorter than the AutoMapper configuration it would replace.
 
-Everything transactional stays in EF Core. This is the deliberate exception, not the
-house style: raw SQL for reporting, an ORM for the write model.
+### `LicensePlate` as a value object?
 
-### Why DTOs instead of returning entities?
+A plate has no identity — it *is* its value — and it has a format that can be wrong. As
+a `record` with a private constructor and a `Create` factory, a malformed plate cannot
+exist in the domain at all; validation happens once at the boundary instead of in every
+controller. EF Core stores it as a uniquely indexed column via a value conversion.
 
-Three reasons, in order of how often they actually bite:
+### Error handling in middleware?
 
-1. **The entities are encapsulated.** `RepairOrder` has private setters and a private
-   parameterless constructor — serialising it out and binding it back in would require
-   opening exactly the doors that keep the status rules enforceable.
-2. **The public contract must be able to change independently of the schema.**
-   Returning entities means every rename in the database is a breaking API change.
-3. **No accidental over-exposure.** Navigation properties serialise into either cycles
-   or a data leak; a DTO exposes precisely the fields intended.
+One place decides how exceptions become HTTP responses, so no controller carries a
+try/catch. `DomainException` → **400** with the rule's own message (the system is
+working; the caller asked for something the business forbids), `NotFoundException` →
+**404**, everything else → **500** with detail in the log only. Every response carries a
+`traceId` linking a client-visible error to its log line.
 
-Mapping is hand-written rather than AutoMapper: with four entities the mapping code is
-shorter than the configuration it would replace, and it stays greppable and
-compile-checked.
+### Migrations at startup?
 
-### Why is `LicensePlate` a value object?
-
-A plate has no identity of its own — it *is* its value — and it has a format that can be
-wrong. As a `record` with a private constructor and a `Create` factory, a malformed
-plate cannot exist in the domain at all: validation happens once, at the boundary,
-instead of being repeated in every controller. EF Core stores it as a plain, uniquely
-indexed column via a value conversion.
-
-### Why is error handling middleware rather than try/catch?
-
-One place decides how exceptions become HTTP responses, so the controllers hold no
-error handling at all. The distinction that matters:
-
-- `DomainException` → **400**, with the rule's own message. The system is working; the
-  caller asked for something the business forbids.
-- `NotFoundException` → **404**.
-- Everything else → **500**, generic message to the client, full detail to the log.
-
-Serilog provides structured logging, and every response carries a `traceId` that ties a
-client-visible error back to a log line.
-
-### Why does the app run its own migrations at startup?
-
-It makes `docker compose up` a single command, which is the entire promise of this
-repo. The trade-off is stated in the code: with several instances this would race, so a
-real deployment moves migrations into a separate step. Auto-migration is switchable via
+It makes `docker compose up` a single command, which is the entire promise of this repo.
+With several instances this would race, so a real deployment moves migrations into a
+separate step — the trade-off is stated in the code and switchable via
 `Database:AutoMigrate`.
 
-### Why no frontend?
+### No frontend?
 
-This is a backend service and is scoped as one. Swagger is the interface. Adding
-Angular would double the effort and shift the centre of gravity away from what the
-repo is meant to show — domain logic, layering, and operational maturity. A frontend
-is on the "possible later" list, not the "missing" list.
+This is a backend service and is scoped as one; Swagger is the interface. Angular would
+double the effort and shift the centre of gravity away from what the repo is meant to
+show — domain logic, layering, operational maturity. It is on the "possible later" list,
+not the "missing" list.
 
 ---
 

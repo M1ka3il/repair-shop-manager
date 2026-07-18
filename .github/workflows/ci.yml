@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      # Warnings are errors (see Directory.Build.props), so this step is also the
+      # style gate.
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Unit tests
+        run: |
+          dotnet test tests/RepairShop.Domain.Tests \
+            --configuration Release --no-build --logger "trx;LogFileName=domain.trx"
+          dotnet test tests/RepairShop.Application.Tests \
+            --configuration Release --no-build --logger "trx;LogFileName=application.trx"
+
+      # The ubuntu runner has a working Docker daemon, so Testcontainers starts a
+      # real SQL Server here. On a machine without Docker these tests skip
+      # themselves rather than failing.
+      - name: Integration tests (Testcontainers + SQL Server)
+        run: |
+          dotnet test tests/RepairShop.IntegrationTests \
+            --configuration Release --no-build --logger "trx;LogFileName=integration.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/TestResults/*.trx"
+          if-no-files-found: ignore
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Proves the claim in the README: a fresh clone really does build.
+      - name: Build API image
+        run: docker build -f src/RepairShop.Api/Dockerfile -t repair-shop-api:ci .

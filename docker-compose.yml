@@ -41,7 +41,11 @@ services:
       db:
         condition: service_healthy
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      # Deliberately not Development: Swagger is registered unconditionally, so
+      # Development buys nothing here and would dump every seed INSERT as SQL
+      # into the log -- a noisy first impression for the one command this repo
+      # promises. Use appsettings.Development.json when running on the host.
+      - ASPNETCORE_ENVIRONMENT=Production
       # Host name "db" resolves on the compose network. TrustServerCertificate
       # is acceptable here because the traffic never leaves that network; a real
       # deployment would use a proper certificate.

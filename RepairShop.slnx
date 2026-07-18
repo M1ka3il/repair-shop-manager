@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RepairShop.Api/RepairShop.Api.csproj" />
+    <Project Path="src/RepairShop.Application/RepairShop.Application.csproj" />
+    <Project Path="src/RepairShop.Domain/RepairShop.Domain.csproj" />
+    <Project Path="src/RepairShop.Infrastructure/RepairShop.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RepairShop.Application.Tests/RepairShop.Application.Tests.csproj" />
+    <Project Path="tests/RepairShop.Domain.Tests/RepairShop.Domain.Tests.csproj" />
+    <Project Path="tests/RepairShop.IntegrationTests/RepairShop.IntegrationTests.csproj" />
+  </Folder>
+</Solution>

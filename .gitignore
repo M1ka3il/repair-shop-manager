@@ -427,3 +427,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Local secrets — the compose password lives here and must never be committed.
+# The pattern "*.env" above does not match a file literally named ".env".
+.env
+.env.local
+!.env.example

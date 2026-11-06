@@ -17,8 +17,7 @@ public class Customer
     public Customer(string name, string? email, string? phone)
     {
         Rename(name);
-        Email = email;
-        Phone = phone;
+        UpdateContact(email, phone);
     }
 
     public int Id { get; private set; }
@@ -42,9 +41,13 @@ public class Customer
         Name = name.Trim();
     }
 
+    /// <summary>Sets the contact details. Blank values are stored as "unknown" (null), not as "".</summary>
     public void UpdateContact(string? email, string? phone)
     {
-        Email = email;
-        Phone = phone;
+        Email = NullIfBlank(email);
+        Phone = NullIfBlank(phone);
     }
+
+    private static string? NullIfBlank(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

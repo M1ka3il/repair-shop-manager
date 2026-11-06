@@ -205,14 +205,19 @@ Swagger UI at <http://localhost:8080>, OpenAPI document at `/swagger/v1/swagger.
 | `PATCH` | `/api/repair-orders/{id}/status` | **Change status** — the dedicated lifecycle endpoint |
 | `POST` | `/api/repair-orders/{id}/items` | Book labour or a part |
 | `DELETE` | `/api/repair-orders/{id}/items/{itemId}` | Remove a line item |
-| `GET` | `/api/customers`, `/api/customers/{id}` | Customers incl. their vehicles (read-only) |
-| `GET` | `/api/vehicles` | All vehicles — useful for picking a `vehicleId` |
+| `GET` | `/api/customers`, `/api/customers/{id}` | Customers incl. their vehicles |
+| `POST` | `/api/customers` | Create a customer (**201**) |
+| `PUT` | `/api/customers/{id}` | Correct name and contact details |
+| `POST` | `/api/customers/{id}/vehicles` | Register a vehicle (**201**); **409** if the plate is taken |
+| `GET` | `/api/vehicles`, `/api/vehicles/{id}` | Vehicles — useful for picking a `vehicleId` |
+| `PUT` | `/api/vehicles/{id}` | Correct plate, make, model, year (owner is fixed); **409** on a taken plate |
 | `GET` | `/api/reports/revenue-by-customer?from=&to=` | Revenue report (stored procedure) |
 | `GET` | `/health` | Liveness probe |
 
 Status codes are used deliberately: **201** on create with a `Location` header, **204**
 on delete, **400** on a rejected business rule or failed validation, **404** for a
-missing resource, **500** only for genuine defects.
+missing resource, **409** when the request collides with existing data (a license
+plate that is already registered), **500** only for genuine defects.
 
 ![Swagger UI of the Repair Shop API](docs/swagger.png)
 
@@ -318,7 +323,7 @@ Scope control is a design decision, so the omissions are listed rather than hidd
 | Inventory / stock | A domain in its own right; would dwarf the repair order |
 | Invoice generation (PDF, tax) | Tax law is a rabbit hole; `Invoiced` as a status is the interesting part |
 | Authentication (JWT) | Would be the right next step for production, but adds no domain depth |
-| Customer/vehicle write endpoints | Read-only is enough to exercise the repair-order flow; full master-data CRUD is volume, not signal |
+| Deleting customers and vehicles | Master data can be created and corrected, but not deleted: a vehicle with repair history must not vanish, for the same reason an invoiced order cannot be deleted. Changing a vehicle's owner is left out for the same reason |
 | Pagination, sorting, filtering beyond status | Straightforward to add, nothing to demonstrate |
 
 ---

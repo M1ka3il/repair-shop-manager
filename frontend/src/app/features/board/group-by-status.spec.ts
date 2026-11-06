@@ -12,6 +12,7 @@ const order = (id: number, status: RepairOrderStatus): RepairOrder => ({
   description: 'Test',
   totalPrice: 0,
   items: [],
+  allowedTransitions: [],
 });
 
 describe('groupByStatus', () => {

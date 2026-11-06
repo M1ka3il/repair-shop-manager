@@ -59,6 +59,32 @@ public class RepairOrderEndpointsTests
         Assert.That(orders, Has.All.Matches<RepairOrderDto>(o => o.Status == RepairOrderStatus.Invoiced));
     }
 
+    /// <summary>
+    /// datetime2 has no offset, so without the UTC conventions EF Core reads
+    /// Kind=Unspecified and the JSON lacks the "Z" — a browser would then parse
+    /// every timestamp as local time. Checked on the raw JSON, after a real
+    /// round-trip through SQL Server, including a nullable timestamp.
+    /// </summary>
+    [Test]
+    public async Task Timestamps_AreSerialisedAsUtc()
+    {
+        var json = await _client.GetStringAsync("/api/repair-orders?status=Invoiced");
+        using var document = JsonDocument.Parse(json);
+
+        var orders = document.RootElement.EnumerateArray().ToList();
+        Assert.That(orders, Is.Not.Empty, "the seed contains invoiced orders");
+
+        Assert.Multiple(() =>
+        {
+            foreach (var order in orders)
+            {
+                Assert.That(order.GetProperty("receivedAtUtc").GetString(), Does.EndWith("Z"));
+                Assert.That(order.GetProperty("completedAtUtc").GetString(), Does.EndWith("Z"),
+                    "invoiced orders are completed, so the nullable timestamp is set too");
+            }
+        });
+    }
+
     [Test]
     public async Task GetRepairOrder_UnknownId_Returns404()
     {
@@ -89,6 +115,7 @@ public class RepairOrderEndpointsTests
 
         var created = await ReadAsync<RepairOrderDto>(createResponse);
         Assert.That(created.Status, Is.EqualTo(RepairOrderStatus.Received));
+        Assert.That(created.AllowedTransitions, Is.EqualTo(new[] { RepairOrderStatus.InProgress }));
 
         // Book labour and a part.
         var withItems = await PatchOrPostAsync<RepairOrderDto>(
@@ -106,6 +133,7 @@ public class RepairOrderEndpointsTests
         {
             Assert.That(invoiced.Status, Is.EqualTo(RepairOrderStatus.Invoiced));
             Assert.That(invoiced.CompletedAtUtc, Is.Not.Null);
+            Assert.That(invoiced.AllowedTransitions, Is.Empty, "Invoiced is terminal");
         });
 
         // And the rule that matters: no way back out of Invoiced — 400, not 500.

@@ -188,6 +188,11 @@ naming the rule — never a 500:
 }
 ```
 
+Clients do not need a copy of this table: every `RepairOrderDto` carries
+`allowedTransitions`, computed by the domain from the current status. The Angular board
+offers exactly those moves, and still shows the server's message if a move is rejected
+because someone else changed the order in the meantime.
+
 Related rules that live in the same place: line items cannot be added to or removed
 from a completed or invoiced order, a completed or invoiced order cannot be deleted
 (deleting billable work would be worse than editing it), and an invoiced order's
@@ -415,7 +420,7 @@ Listed as a roadmap, not as gaps:
 
 - A decoupled `BackgroundService` with a queue (e.g. asynchronous invoice dispatch)
 - JWT authentication and role-based authorisation
-- Remaining UI screens (order detail, new order, customers, report) and moving cards on the board
+- Remaining UI screens (order detail, new order, customers, report)
 
 ---
 

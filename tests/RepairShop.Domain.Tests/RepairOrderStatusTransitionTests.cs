@@ -171,4 +171,23 @@ public class RepairOrderStatusTransitionTests
                 throw new ArgumentOutOfRangeException(nameof(status), status, "Unhandled status");
         }
     }
+
+    [TestCase(RepairOrderStatus.Received, new[] { RepairOrderStatus.InProgress })]
+    [TestCase(RepairOrderStatus.InProgress, new[] { RepairOrderStatus.WaitingForParts, RepairOrderStatus.Completed })]
+    [TestCase(RepairOrderStatus.WaitingForParts, new[] { RepairOrderStatus.InProgress })]
+    [TestCase(RepairOrderStatus.Completed, new[] { RepairOrderStatus.Invoiced })]
+    [TestCase(RepairOrderStatus.Invoiced, new RepairOrderStatus[0])]
+    public void AllowedTargets_MatchWhatTransitionToAccepts(RepairOrderStatus status, RepairOrderStatus[] expected)
+    {
+        var order = OrderInStatus(status);
+
+        Assert.That(order.AllowedTargets, Is.EqualTo(expected));
+
+        // The list is not a second source of truth: it must agree with
+        // CanTransitionTo for every status, allowed or not.
+        foreach (var target in Enum.GetValues<RepairOrderStatus>())
+        {
+            Assert.That(order.CanTransitionTo(target), Is.EqualTo(expected.Contains(target)), $"{status} → {target}");
+        }
+    }
 }

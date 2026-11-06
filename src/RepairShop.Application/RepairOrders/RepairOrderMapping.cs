@@ -19,7 +19,8 @@ internal static class RepairOrderMapping
         order.CompletedAtUtc,
         order.Description,
         order.TotalPrice,
-        [.. order.Items.Select(ToDto)]);
+        [.. order.Items.Select(ToDto)],
+        order.AllowedTargets);
 
     public static RepairItemDto ToDto(this RepairItem item) => new(
         item.Id,

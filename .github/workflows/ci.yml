@@ -66,6 +66,11 @@ jobs:
       - name: Build web image
         run: docker build -t repair-shop-web:ci frontend
 
+      # Building copies nginx.conf but never parses it. "api" only resolves on
+      # the compose network, so it is pointed at localhost for the syntax check.
+      - name: Check nginx config of the web image
+        run: docker run --rm --add-host api:127.0.0.1 repair-shop-web:ci nginx -t
+
   frontend:
     name: Frontend build & test
     runs-on: ubuntu-latest

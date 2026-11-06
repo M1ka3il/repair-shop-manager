@@ -57,6 +57,13 @@ public class RepairOrder
 
     public DateTime? CompletedAtUtc { get; private set; }
 
+    /// <summary>
+    /// When the order was billed — the date revenue belongs to. Set once by the
+    /// transition to <see cref="RepairOrderStatus.Invoiced"/>, which is terminal,
+    /// so it can never change afterwards.
+    /// </summary>
+    public DateTime? InvoicedAtUtc { get; private set; }
+
     public string Description { get; private set; }
 
     public IReadOnlyCollection<RepairItem> Items => _items.AsReadOnly();
@@ -104,6 +111,10 @@ public class RepairOrder
         if (target == RepairOrderStatus.Completed)
         {
             CompletedAtUtc = nowUtc;
+        }
+        else if (target == RepairOrderStatus.Invoiced)
+        {
+            InvoicedAtUtc = nowUtc;
         }
     }
 

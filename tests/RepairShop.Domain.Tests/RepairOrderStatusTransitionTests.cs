@@ -109,6 +109,26 @@ public class RepairOrderStatusTransitionTests
     }
 
     [Test]
+    public void TransitionTo_Invoiced_StampsInvoiceTime()
+    {
+        var order = OrderInStatus(RepairOrderStatus.Completed);
+        Assert.That(order.InvoicedAtUtc, Is.Null, "not billed yet");
+
+        order.TransitionTo(RepairOrderStatus.Invoiced, Now.AddDays(3));
+
+        Assert.That(order.InvoicedAtUtc, Is.EqualTo(Now.AddDays(3)));
+    }
+
+    [TestCase(RepairOrderStatus.Received)]
+    [TestCase(RepairOrderStatus.InProgress)]
+    [TestCase(RepairOrderStatus.WaitingForParts)]
+    [TestCase(RepairOrderStatus.Completed)]
+    public void InvoicedAtUtc_IsOnlySetByInvoicing(RepairOrderStatus status)
+    {
+        Assert.That(OrderInStatus(status).InvoicedAtUtc, Is.Null);
+    }
+
+    [Test]
     public void CanTransitionTo_ReportsTheSameAnswerAsTransitionTo()
     {
         var order = OrderInStatus(RepairOrderStatus.WaitingForParts);

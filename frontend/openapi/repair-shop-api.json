@@ -1188,6 +1188,7 @@
           "status",
           "receivedAtUtc",
           "completedAtUtc",
+          "invoicedAtUtc",
           "description",
           "totalPrice",
           "items",
@@ -1226,6 +1227,12 @@
           "completedAtUtc": {
             "type": "string",
             "description": "When the work was finished, if it was.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "invoicedAtUtc": {
+            "type": "string",
+            "description": "When the order was billed, if it was. Revenue is reported by this date.",
             "format": "date-time",
             "nullable": true
           },

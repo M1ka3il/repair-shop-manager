@@ -33,7 +33,9 @@ public class DatabaseInitializer(RepairShopDbContext db, ILogger<DatabaseInitial
 
     private async Task SeedAsync(CancellationToken cancellationToken)
     {
-        // A fixed base date keeps the seeded revenue report reproducible.
+        // Relative to "now", so the demo data always looks recent: the default
+        // report period ("this year") and the board show it on first start.
+        // Note: around New Year, the invoiced orders fall into the previous year.
         var now = DateTime.UtcNow;
 
         var schmidt = new Customer("Kfz-Handel Schmidt GmbH", "buchhaltung@schmidt-kfz.example", "+49 89 1234567");

@@ -17,6 +17,7 @@ const order = (overrides: Partial<RepairOrder> = {}): RepairOrder => ({
   status: 'InProgress',
   receivedAtUtc: '2026-11-05T08:00:00Z',
   completedAtUtc: null,
+  invoicedAtUtc: null,
   description: 'Kupplung rutscht',
   totalPrice: 534,
   items: [],

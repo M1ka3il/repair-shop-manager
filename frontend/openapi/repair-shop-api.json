@@ -897,7 +897,7 @@
           {
             "name": "from",
             "in": "query",
-            "description": "Start of the period (inclusive, UTC). Defaults to one year ago.",
+            "description": "Start of the period (inclusive). ISO 8601; with an offset it is converted to UTC, without one it is taken as UTC. Defaults to one year before to.",
             "schema": {
               "type": "string",
               "format": "date-time"
@@ -906,7 +906,7 @@
           {
             "name": "to",
             "in": "query",
-            "description": "End of the period (inclusive, UTC). Defaults to now.",
+            "description": "End of the period (inclusive, a point in time \u2014 send the end of the last day, not just its date). Same format as from. Defaults to now.",
             "schema": {
               "type": "string",
               "format": "date-time"

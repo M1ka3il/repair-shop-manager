@@ -1,0 +1,184 @@
+<div class="page-head">
+  <div>
+    <h1>Umsatz nach Kunde</h1>
+    <p class="muted">
+      Nur abgerechnete Aufträge, netto. Zugeordnet nach <strong>Annahmedatum</strong> des Auftrags.
+    </p>
+  </div>
+</div>
+
+<section class="panel controls" aria-label="Zeitraum">
+  <div class="presets" role="group" aria-label="Schnellauswahl">
+    @for (preset of presets; track preset.id) {
+      <button
+        type="button"
+        class="chip"
+        [class.chip-active]="isActivePreset(preset.id)"
+        [attr.aria-pressed]="isActivePreset(preset.id)"
+        (click)="applyPreset(preset.id)"
+      >
+        {{ preset.label }}
+      </button>
+    }
+  </div>
+  <form class="range" [formGroup]="form" (ngSubmit)="apply()" novalidate>
+    <label class="field">
+      Von
+      <input class="input" type="date" formControlName="from" [attr.aria-invalid]="formInvalid()" />
+    </label>
+    <label class="field">
+      Bis (einschließlich)
+      <input class="input" type="date" formControlName="to" [attr.aria-invalid]="formInvalid()" />
+    </label>
+    <button type="submit" class="btn btn-primary">Auswerten</button>
+    @if (formInvalid()) {
+      <p class="field-error wide" role="alert">„Von“ muss vor oder gleich „Bis“ liegen.</p>
+    }
+  </form>
+</section>
+
+@if (error(); as e) {
+  <div class="alert" role="alert">
+    <div>
+      <strong>{{ e.title }}</strong>
+      <span>{{ e.detail }}</span>
+    </div>
+    <button type="button" class="btn btn-secondary" (click)="report.reload()">
+      Erneut versuchen
+    </button>
+  </div>
+}
+
+<div class="tiles" [attr.aria-busy]="report.isLoading()">
+  <div class="panel tile">
+    <span class="tile-label">Umsatz gesamt</span>
+    <span class="tile-value">{{ totals().total | currency: 'EUR' }}</span>
+    <span class="tile-note">{{ totals().orders }} abgerechnete Aufträge</span>
+  </div>
+  <div class="panel tile">
+    <span class="tile-label"
+      ><span class="swatch swatch-labour" aria-hidden="true"></span>Arbeitszeit</span
+    >
+    <span class="tile-value">{{ totals().labour | currency: 'EUR' }}</span>
+    <span class="tile-note">{{ totals().labourShare | percent: '1.0-0' }} vom Umsatz</span>
+  </div>
+  <div class="panel tile">
+    <span class="tile-label"
+      ><span class="swatch swatch-parts" aria-hidden="true"></span>Teile</span
+    >
+    <span class="tile-value">{{ totals().parts | currency: 'EUR' }}</span>
+    <span class="tile-note">{{ totals().partsShare | percent: '1.0-0' }} vom Umsatz</span>
+  </div>
+</div>
+
+@if (report.hasValue() && rows().length === 0) {
+  <div class="panel empty">
+    <p>Keine abgerechneten Aufträge in diesem Zeitraum.</p>
+    <a routerLink="/board">Zum Board</a>
+  </div>
+} @else if (rows().length > 0) {
+  <section class="panel" aria-labelledby="chart-h">
+    <div class="chart-head">
+      <h2 id="chart-h">Umsatz je Kunde</h2>
+      <div class="legend" aria-hidden="true">
+        <span><span class="swatch swatch-labour"></span>Arbeitszeit</span>
+        <span><span class="swatch swatch-parts"></span>Teile</span>
+      </div>
+    </div>
+
+    <!-- Hover readout: one line instead of a floating tooltip, never covers a bar. -->
+    <p class="readout" aria-live="polite">
+      @if (hovered(); as h) {
+        <strong>{{ h.row.customerName }}</strong> ·
+        {{ h.part === 'labour' ? 'Arbeitszeit' : 'Teile' }}
+        {{ (h.part === 'labour' ? h.row.labourRevenue : h.row.partsRevenue) | currency: 'EUR' }}
+        ({{ share(h.row, h.part) | percent: '1.0-0' }} des Kundenumsatzes)
+      } @else {
+        <span class="muted"
+          >Balken berühren für Details – alle Zahlen stehen auch in der Tabelle.</span
+        >
+      }
+    </p>
+
+    <!-- The table below is the accessible version of this chart. -->
+    <div class="bars" aria-hidden="true" (mouseleave)="hovered.set(null)">
+      @for (bar of bars(); track bar.row.customerId) {
+        <div class="bar-row">
+          <span class="bar-name">{{ bar.row.customerName }}</span>
+          <span class="bar-track">
+            @if (bar.labourPct > 0) {
+              <span
+                class="seg seg-labour"
+                [class.seg-last]="bar.partsPct === 0"
+                [style.width.%]="bar.labourPct"
+                (mouseenter)="hover(bar.row, 'labour')"
+              ></span>
+            }
+            @if (bar.partsPct > 0) {
+              <span
+                class="seg seg-parts seg-last"
+                [style.width.%]="bar.partsPct"
+                (mouseenter)="hover(bar.row, 'parts')"
+              ></span>
+            }
+          </span>
+          <span class="bar-total">{{ bar.row.totalRevenue | currency: 'EUR' }}</span>
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="table-h">
+    <div class="chart-head">
+      <h2 id="table-h">Details</h2>
+      <button type="button" class="btn btn-secondary" (click)="downloadCsv()">
+        CSV exportieren
+      </button>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <caption class="sr-only">
+          Umsatz je Kunde vom
+          {{
+            period().from
+          }}
+          bis
+          {{
+            period().to
+          }}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Kunde</th>
+            <th scope="col" class="num">Aufträge</th>
+            <th scope="col" class="num">Arbeitszeit</th>
+            <th scope="col" class="num">Teile</th>
+            <th scope="col" class="num">Gesamt</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.customerId) {
+            <tr>
+              <th scope="row" class="row-head">
+                <a [routerLink]="['/customers', row.customerId]">{{ row.customerName }}</a>
+              </th>
+              <td class="num">{{ row.orderCount | number }}</td>
+              <td class="num">{{ row.labourRevenue | currency: 'EUR' }}</td>
+              <td class="num">{{ row.partsRevenue | currency: 'EUR' }}</td>
+              <td class="num strong">{{ row.totalRevenue | currency: 'EUR' }}</td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr>
+            <th scope="row" class="row-head">Summe</th>
+            <td class="num">{{ totals().orders | number }}</td>
+            <td class="num">{{ totals().labour | currency: 'EUR' }}</td>
+            <td class="num">{{ totals().parts | currency: 'EUR' }}</td>
+            <td class="num">{{ totals().total | currency: 'EUR' }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+}

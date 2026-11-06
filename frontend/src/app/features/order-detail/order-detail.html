@@ -1,0 +1,272 @@
+<a routerLink="/board" class="back">← Zurück zum Board</a>
+
+@if (loadError(); as e) {
+  @if (e.status === 404) {
+    <div class="panel not-found">
+      <h1>Auftrag #{{ id() }} nicht gefunden</h1>
+      <p class="muted">Vielleicht wurde er gelöscht.</p>
+      <a routerLink="/board" class="btn btn-primary">Zum Board</a>
+    </div>
+  } @else {
+    <div class="alert" role="alert">
+      <div>
+        <strong>{{ e.title }}</strong>
+        <span>{{ e.detail }}</span>
+      </div>
+      <button type="button" class="btn btn-secondary" (click)="order.reload()">
+        Erneut versuchen
+      </button>
+    </div>
+  }
+}
+
+@if (current(); as o) {
+  <div class="head">
+    <h1>Auftrag #{{ o.id }}</h1>
+    <span class="plate-badge">{{ o.licensePlate }}</span>
+    <span class="status-pill" [style.--status]="'var(' + statusMeta(o.status).colorVar + ')'">
+      {{ statusMeta(o.status).label }}
+    </span>
+    <div class="head-actions">
+      @for (action of actions(); track action.status; let last = $last) {
+        <button
+          type="button"
+          class="btn"
+          [class.btn-primary]="last"
+          [class.btn-secondary]="!last"
+          [disabled]="pending()"
+          (click)="changeStatus(action.status)"
+        >
+          {{ action.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <ol class="steps" aria-label="Statusverlauf">
+    @for (step of steps(); track step.status) {
+      <li
+        [class]="'step step-' + step.state"
+        [attr.aria-current]="step.state === 'current' ? 'step' : null"
+      >
+        <span class="step-state">
+          {{
+            step.state === 'done' ? '✓ erledigt' : step.state === 'current' ? 'aktuell' : 'offen'
+          }}
+        </span>
+        <span class="step-label">{{ step.label }}</span>
+        @if (step.note) {
+          <span class="step-note">{{ step.note }}</span>
+        }
+      </li>
+    }
+  </ol>
+
+  <app-notice [notice]="notice()" />
+
+  @if (finished()) {
+    <p class="locked" role="note">
+      Arbeit abgeschlossen – Positionen können nicht mehr geändert werden, der Auftrag kann nicht
+      gelöscht werden.
+      @if (invoiced()) {
+        Die Beschreibung ist mit der Abrechnung eingefroren.
+      }
+    </p>
+  }
+
+  <div class="layout">
+    <div class="main">
+      <section class="panel" aria-labelledby="desc-h">
+        <h2 id="desc-h">Fehlerbeschreibung</h2>
+        <form [formGroup]="descriptionForm" (ngSubmit)="saveDescription()" class="desc-form">
+          <label class="field" for="description">Was hat der Kunde gemeldet?</label>
+          <textarea
+            id="description"
+            class="input"
+            rows="3"
+            formControlName="description"
+            [attr.aria-invalid]="description.invalid && description.touched"
+            aria-describedby="description-error"
+          ></textarea>
+          @if (description.invalid && description.touched) {
+            <p class="field-error" id="description-error">3 bis 1000 Zeichen.</p>
+          }
+          @if (!invoiced()) {
+            <button
+              type="submit"
+              class="btn btn-secondary"
+              [disabled]="pending() || description.pristine"
+            >
+              Beschreibung speichern
+            </button>
+          }
+        </form>
+      </section>
+
+      <section class="panel" aria-labelledby="items-h">
+        <h2 id="items-h">
+          Positionen <span class="muted count">{{ o.items.length }}</span>
+        </h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Art</th>
+                <th scope="col">Bezeichnung</th>
+                <th scope="col" class="num">Menge</th>
+                <th scope="col" class="num">Einzelpreis</th>
+                <th scope="col" class="num">Summe</th>
+                <th scope="col"><span class="sr-only">Aktion</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of o.items; track item.id) {
+                <tr>
+                  <td>
+                    <span class="type" [class.type-part]="item.type === 'Part'">
+                      {{ item.type === 'Labour' ? 'Arbeit' : 'Teil' }}
+                    </span>
+                  </td>
+                  <td>{{ item.designation }}</td>
+                  <td class="num">
+                    {{ item.quantity | number: '1.0-2' }} {{ item.type === 'Labour' ? 'h' : 'Stk' }}
+                  </td>
+                  <td class="num">{{ item.unitPrice | currency: 'EUR' }}</td>
+                  <td class="num strong">{{ item.lineTotal | currency: 'EUR' }}</td>
+                  <td class="num">
+                    @if (!finished()) {
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        [disabled]="pending()"
+                        [attr.aria-label]="'Position ' + item.designation + ' entfernen'"
+                        (click)="removeItem(item.id, item.designation)"
+                      >
+                        Entfernen
+                      </button>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="6" class="muted">Noch keine Positionen gebucht.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (!finished()) {
+          <form
+            class="item-form"
+            [formGroup]="itemForm"
+            (ngSubmit)="addItem()"
+            aria-label="Position hinzufügen"
+            novalidate
+          >
+            <label class="field">
+              Art
+              <select class="input" formControlName="type">
+                <option value="Labour">Arbeitszeit</option>
+                <option value="Part">Teil</option>
+              </select>
+            </label>
+            <label class="field grow">
+              Bezeichnung
+              <input
+                class="input"
+                formControlName="designation"
+                placeholder="z. B. Kupplungssatz"
+                [attr.aria-invalid]="!!errorFor(itemForm.controls.designation)"
+              />
+              @if (errorFor(itemForm.controls.designation); as msg) {
+                <span class="field-error">{{ msg }}</span>
+              }
+            </label>
+            <label class="field">
+              {{ itemType() === 'Labour' ? 'Stunden' : 'Stück' }}
+              <input
+                class="input num"
+                formControlName="quantity"
+                inputmode="decimal"
+                [attr.aria-invalid]="!!errorFor(itemForm.controls.quantity, '0,01', '100.000')"
+              />
+              @if (errorFor(itemForm.controls.quantity, '0,01', '100.000'); as msg) {
+                <span class="field-error">{{ msg }}</span>
+              }
+            </label>
+            <label class="field">
+              Einzelpreis €
+              <input
+                class="input num"
+                formControlName="unitPrice"
+                inputmode="decimal"
+                placeholder="89,00"
+                [attr.aria-invalid]="!!errorFor(itemForm.controls.unitPrice, '0', '1.000.000')"
+              />
+              @if (errorFor(itemForm.controls.unitPrice, '0', '1.000.000'); as msg) {
+                <span class="field-error">{{ msg }}</span>
+              }
+            </label>
+            <button type="submit" class="btn btn-primary" [disabled]="pending()">Hinzufügen</button>
+          </form>
+        }
+      </section>
+    </div>
+
+    <aside class="side">
+      <section class="panel" aria-labelledby="sum-h">
+        <h2 id="sum-h">Summe (netto)</h2>
+        <dl class="sum">
+          <dt>Arbeitszeit</dt>
+          <dd>{{ labourTotal() | currency: 'EUR' }}</dd>
+          <dt>Teile</dt>
+          <dd>{{ partsTotal() | currency: 'EUR' }}</dd>
+          <dt class="total">Gesamt</dt>
+          <dd class="total">{{ o.totalPrice | currency: 'EUR' }}</dd>
+        </dl>
+      </section>
+
+      <section class="panel facts" aria-labelledby="veh-h">
+        <h2 id="veh-h">Fahrzeug &amp; Kunde</h2>
+        @if (vehicle.value(); as v) {
+          <p class="strong">{{ v.make }} {{ v.model }} · {{ v.year }}</p>
+          <p class="muted">{{ v.licensePlate }}</p>
+        }
+        <p class="strong">{{ o.customerName }}</p>
+        @if (customer.value(); as c) {
+          <p class="muted">{{ c.phone ?? '–' }} · {{ c.email ?? '–' }}</p>
+        }
+        <p class="muted">
+          Angenommen {{ o.receivedAtUtc | date: 'dd.MM.yyyy, HH:mm' }}
+          @if (o.completedAtUtc) {
+            <br />Fertig {{ o.completedAtUtc | date: 'dd.MM.yyyy, HH:mm' }}
+          }
+        </p>
+      </section>
+
+      @if (!finished()) {
+        @if (confirmingDelete()) {
+          <div class="panel confirm" role="group" aria-label="Löschen bestätigen">
+            <p>Auftrag #{{ o.id }} mit allen Positionen löschen?</p>
+            <button
+              type="button"
+              class="btn btn-danger"
+              [disabled]="pending()"
+              (click)="deleteOrder()"
+            >
+              Ja, löschen
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="confirmingDelete.set(false)">
+              Abbrechen
+            </button>
+          </div>
+        } @else {
+          <button type="button" class="btn btn-danger" (click)="confirmingDelete.set(true)">
+            Auftrag löschen
+          </button>
+        }
+      }
+    </aside>
+  </div>
+}

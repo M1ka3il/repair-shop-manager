@@ -15,6 +15,13 @@ Clone it, run `docker compose up`, open <http://localhost:4200> for the UI or
 
 ![Board: repair orders by status](docs/board.png)
 
+<details>
+<summary>Order detail</summary>
+
+![Order detail: lifecycle, line items, totals](docs/order-detail.png)
+
+</details>
+
 ---
 
 ## Table of contents
@@ -420,7 +427,7 @@ Listed as a roadmap, not as gaps:
 
 - A decoupled `BackgroundService` with a queue (e.g. asynchronous invoice dispatch)
 - JWT authentication and role-based authorisation
-- Remaining UI screens (order detail, new order, customers, report)
+- Remaining UI screens (new order, customers, report)
 
 ---
 

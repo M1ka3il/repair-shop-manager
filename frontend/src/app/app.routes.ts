@@ -18,8 +18,7 @@ export const routes: Routes = [
   {
     path: 'orders/:id',
     title: 'Auftrag · Werkstatt',
-    loadComponent: placeholder,
-    data: { title: 'Auftragsdetail', planned: 'Statuswechsel, Positionen, Summen.' },
+    loadComponent: () => import('./features/order-detail/order-detail').then((m) => m.OrderDetail),
   },
   {
     path: 'customers',

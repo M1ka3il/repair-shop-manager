@@ -14,13 +14,8 @@ import type { RepairOrder, RepairOrderStatus } from '../../core/api/models';
 import { RepairOrdersApi } from '../../core/api/repair-orders.api';
 import { toApiError } from '../../core/http/api-error';
 import { STATUSES, isWorkFinished, statusMeta } from '../../core/status/repair-order-status';
+import { type Notice, NoticeView } from '../../shared/notice/notice';
 import { groupByStatus } from './group-by-status';
-
-interface Notice {
-  readonly kind: 'success' | 'error';
-  readonly title: string;
-  readonly detail: string;
-}
 
 /**
  * Start page: all repair orders as a board, one column per status. Selecting a
@@ -29,7 +24,7 @@ interface Notice {
  */
 @Component({
   selector: 'app-board',
-  imports: [RouterLink, CurrencyPipe, DatePipe],
+  imports: [RouterLink, CurrencyPipe, DatePipe, NoticeView],
   templateUrl: './board.html',
   styleUrl: './board.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

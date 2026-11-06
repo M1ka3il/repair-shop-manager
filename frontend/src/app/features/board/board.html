@@ -44,16 +44,7 @@
   </section>
 }
 
-@if (notice(); as n) {
-  <div
-    class="notice"
-    [class.notice-error]="n.kind === 'error'"
-    [attr.role]="n.kind === 'error' ? 'alert' : 'status'"
-  >
-    <strong>{{ n.title }}</strong>
-    <span>{{ n.detail }}</span>
-  </div>
-}
+<app-notice [notice]="notice()" />
 
 <div class="columns" [attr.aria-busy]="orders.isLoading()">
   @for (column of columns(); track column.status) {

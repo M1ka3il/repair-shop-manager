@@ -34,6 +34,10 @@ export class CustomersApi {
     return this.http.get<Vehicle[]>('/api/vehicles');
   }
 
+  getVehicle(id: number): Observable<Vehicle> {
+    return this.http.get<Vehicle>(`/api/vehicles/${id}`);
+  }
+
   addVehicle(customerId: number, request: SaveVehicleRequest): Observable<Vehicle> {
     return this.http.post<Vehicle>(`/api/customers/${customerId}/vehicles`, request);
   }

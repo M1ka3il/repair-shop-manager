@@ -64,6 +64,12 @@ public class RepairOrder
     /// <summary>Sum of all line items. Derived, never stored.</summary>
     public decimal TotalPrice => _items.Sum(item => item.LineTotal);
 
+    /// <summary>
+    /// Work is done once the order is completed: from here on, what it costs and
+    /// whether it exists are part of the billing record and no longer editable.
+    /// </summary>
+    private bool IsWorkFinished => Status is RepairOrderStatus.Completed or RepairOrderStatus.Invoiced;
+
     /// <summary>True if <paramref name="target"/> is reachable from the current status.</summary>
     public bool CanTransitionTo(RepairOrderStatus target) =>
         AllowedTransitions.TryGetValue(Status, out var allowed) && allowed.Contains(target);
@@ -101,7 +107,7 @@ public class RepairOrder
     /// </summary>
     public RepairItem AddItem(RepairItemType type, string designation, decimal unitPrice, decimal quantity)
     {
-        if (Status is RepairOrderStatus.Completed or RepairOrderStatus.Invoiced)
+        if (IsWorkFinished)
         {
             throw new DomainException($"Cannot add items to an order in status '{Status}'.");
         }
@@ -114,7 +120,7 @@ public class RepairOrder
     /// <summary>Removes a line item. Same restriction as <see cref="AddItem"/>.</summary>
     public void RemoveItem(int itemId)
     {
-        if (Status is RepairOrderStatus.Completed or RepairOrderStatus.Invoiced)
+        if (IsWorkFinished)
         {
             throw new DomainException($"Cannot remove items from an order in status '{Status}'.");
         }
@@ -123,6 +129,20 @@ public class RepairOrder
             ?? throw new DomainException($"Repair item {itemId} does not belong to this order.");
 
         _items.Remove(item);
+    }
+
+    /// <summary>
+    /// Guards deletion. Same restriction as <see cref="AddItem"/>: a completed or
+    /// invoiced order is billable work, and deleting it would make that work
+    /// disappear without trace — worse than editing it, which is already forbidden.
+    /// </summary>
+    /// <exception cref="DomainException">The order is completed or invoiced.</exception>
+    public void EnsureCanBeDeleted()
+    {
+        if (IsWorkFinished)
+        {
+            throw new DomainException($"Cannot delete an order in status '{Status}'.");
+        }
     }
 
     public void UpdateDescription(string description)

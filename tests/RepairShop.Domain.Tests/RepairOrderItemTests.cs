@@ -100,10 +100,56 @@ public class RepairOrderItemTests
         Assert.Throws<DomainException>(() => order.UpdateDescription("Doch etwas anderes"));
     }
 
+    [TestCase(RepairOrderStatus.Received)]
+    [TestCase(RepairOrderStatus.InProgress)]
+    [TestCase(RepairOrderStatus.WaitingForParts)]
+    public void EnsureCanBeDeleted_WhileWorkIsOpen_DoesNotThrow(RepairOrderStatus status)
+    {
+        var order = OrderIn(status);
+
+        Assert.DoesNotThrow(order.EnsureCanBeDeleted);
+    }
+
+    /// <summary>
+    /// Deleting billable work is worse than editing it, and editing is already
+    /// forbidden — so deletion must be blocked at least as strictly.
+    /// </summary>
+    [TestCase(RepairOrderStatus.Completed)]
+    [TestCase(RepairOrderStatus.Invoiced)]
+    public void EnsureCanBeDeleted_AfterWorkIsFinished_Throws(RepairOrderStatus status)
+    {
+        var order = OrderIn(status);
+
+        var ex = Assert.Throws<DomainException>(order.EnsureCanBeDeleted);
+        Assert.That(ex.Message, Does.Contain(status.ToString()));
+    }
+
     [Test]
     public void Constructor_BlankDescription_Throws()
     {
         Assert.Throws<DomainException>(() => new RepairOrder(1, "  ", Now));
+    }
+
+    private static RepairOrder OrderIn(RepairOrderStatus status)
+    {
+        var order = new RepairOrder(1, "Bremsen quietschen", Now.AddDays(-1));
+        RepairOrderStatus[] path = status switch
+        {
+            RepairOrderStatus.Received => [],
+            RepairOrderStatus.InProgress => [RepairOrderStatus.InProgress],
+            RepairOrderStatus.WaitingForParts => [RepairOrderStatus.InProgress, RepairOrderStatus.WaitingForParts],
+            RepairOrderStatus.Completed => [RepairOrderStatus.InProgress, RepairOrderStatus.Completed],
+            RepairOrderStatus.Invoiced =>
+                [RepairOrderStatus.InProgress, RepairOrderStatus.Completed, RepairOrderStatus.Invoiced],
+            _ => throw new ArgumentOutOfRangeException(nameof(status))
+        };
+
+        foreach (var step in path)
+        {
+            order.TransitionTo(step, Now);
+        }
+
+        return order;
     }
 
     private static RepairOrder InProgressOrder()

@@ -120,6 +120,39 @@ public class RepairOrderEndpointsTests
     }
 
     [Test]
+    public async Task DeleteRepairOrder_OpenOrder_Returns204AndIsGone()
+    {
+        var created = await CreateOrderAsync("Wird storniert");
+
+        var response = await _client.DeleteAsync($"/api/repair-orders/{created.Id}");
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NoContent));
+
+        var lookup = await _client.GetAsync($"/api/repair-orders/{created.Id}");
+        Assert.That(lookup.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+    }
+
+    /// <summary>
+    /// An invoiced order is part of the billing record: DELETE is a business-rule
+    /// violation (400, not 500), and the order must still be there afterwards.
+    /// </summary>
+    [Test]
+    public async Task DeleteRepairOrder_Invoiced_Returns400AndKeepsOrder()
+    {
+        var created = await CreateOrderAsync("Abgerechnet, darf nicht verschwinden");
+        await ChangeStatusAsync(created.Id, RepairOrderStatus.InProgress);
+        await ChangeStatusAsync(created.Id, RepairOrderStatus.Completed);
+        await ChangeStatusAsync(created.Id, RepairOrderStatus.Invoiced);
+
+        var response = await _client.DeleteAsync($"/api/repair-orders/{created.Id}");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("Invoiced"));
+
+        var stillThere = await GetAsync<RepairOrderDto>($"/api/repair-orders/{created.Id}");
+        Assert.That(stillThere.Status, Is.EqualTo(RepairOrderStatus.Invoiced));
+    }
+
+    [Test]
     public async Task CreateRepairOrder_UnknownVehicle_Returns404()
     {
         var response = await _client.PostAsJsonAsync("/api/repair-orders", new
@@ -183,6 +216,19 @@ public class RepairOrderEndpointsTests
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
         Assert.That(await response.Content.ReadAsStringAsync(), Does.Contain("/api/repair-orders"));
+    }
+
+    private async Task<RepairOrderDto> CreateOrderAsync(string description)
+    {
+        var vehicles = await GetAsync<List<VehicleDto>>("/api/vehicles");
+        var response = await _client.PostAsJsonAsync("/api/repair-orders", new
+        {
+            vehicleId = vehicles[0].Id,
+            description
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        return await ReadAsync<RepairOrderDto>(response);
     }
 
     private async Task<RepairOrderDto> ChangeStatusAsync(int id, RepairOrderStatus target)

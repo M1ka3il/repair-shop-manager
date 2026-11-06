@@ -74,9 +74,11 @@ public class RepairOrdersController(IRepairOrderService service) : ControllerBas
     /// <param name="id">Order id.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="204">Deleted.</response>
+    /// <response code="400">The order is completed or invoiced and can no longer be deleted.</response>
     /// <response code="404">No order with that id.</response>
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {

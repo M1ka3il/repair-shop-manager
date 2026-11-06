@@ -175,6 +175,24 @@ public class RepairOrderServiceTests
         _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// The domain refuses, so the service must neither remove the order from the
+    /// repository nor save. The strict mock has no <c>Remove</c> setup, so any call
+    /// to it would fail the test on its own.
+    /// </summary>
+    [TestCase(RepairOrderStatus.Completed)]
+    [TestCase(RepairOrderStatus.Invoiced)]
+    public void DeleteAsync_FinishedOrder_ThrowsDomainExceptionAndDoesNotSave(RepairOrderStatus status)
+    {
+        var order = OrderInStatus(status);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(order);
+
+        Assert.ThrowsAsync<DomainException>(() => _service.DeleteAsync(1));
+
+        _orders.Verify(r => r.Remove(It.IsAny<RepairOrder>()), Times.Never);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
     private static Vehicle Vehicle() =>
         new(customerId: 1, LicensePlate.Create("M-AB 1234"), "Opel", "Corsa F", 2021);
 

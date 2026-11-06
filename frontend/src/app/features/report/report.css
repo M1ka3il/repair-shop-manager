@@ -184,3 +184,7 @@ tfoot th {
     grid-row: 2;
   }
 }
+
+:host > .panel + .panel {
+  margin-top: 20px;
+}

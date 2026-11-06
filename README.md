@@ -16,13 +16,15 @@ Clone it, run `docker compose up`, open <http://localhost:4200> for the UI or
 ![Board: repair orders by status](docs/board.png)
 
 <details>
-<summary>Order detail, new order, customers</summary>
+<summary>Order detail, new order, customers, revenue report</summary>
 
 ![Order detail: lifecycle, line items, totals](docs/order-detail.png)
 
 ![New order: find or register the vehicle](docs/new-order.png)
 
 ![Customers and vehicles](docs/customers.png)
+
+![Revenue by customer](docs/report.png)
 
 </details>
 

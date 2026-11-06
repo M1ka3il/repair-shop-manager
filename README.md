@@ -185,7 +185,9 @@ naming the rule — never a 500:
 ```
 
 Related rules that live in the same place: line items cannot be added to or removed
-from a completed or invoiced order, and an invoiced order's description is frozen.
+from a completed or invoiced order, a completed or invoiced order cannot be deleted
+(deleting billable work would be worse than editing it), and an invoiced order's
+description is frozen.
 
 ---
 
@@ -199,7 +201,7 @@ Swagger UI at <http://localhost:8080>, OpenAPI document at `/swagger/v1/swagger.
 | `GET` | `/api/repair-orders/{id}` | One order including its line items |
 | `POST` | `/api/repair-orders` | Create an order (**201** + `Location` header) |
 | `PUT` | `/api/repair-orders/{id}` | Edit the description |
-| `DELETE` | `/api/repair-orders/{id}` | Delete an order (**204**) |
+| `DELETE` | `/api/repair-orders/{id}` | Delete an open order (**204**); **400** once completed or invoiced |
 | `PATCH` | `/api/repair-orders/{id}/status` | **Change status** — the dedicated lifecycle endpoint |
 | `POST` | `/api/repair-orders/{id}/items` | Book labour or a part |
 | `DELETE` | `/api/repair-orders/{id}/items/{itemId}` | Remove a line item |
@@ -212,9 +214,7 @@ Status codes are used deliberately: **201** on create with a `Location` header, 
 on delete, **400** on a rejected business rule or failed validation, **404** for a
 missing resource, **500** only for genuine defects.
 
-> **Screenshot placeholder:** add `docs/swagger.png` and reference it here once the
-> stack has been started once — `docker compose up`, then screenshot
-> <http://localhost:8080>. It is the visual anchor a backend-only repo otherwise lacks.
+![Swagger UI of the Repair Shop API](docs/swagger.png)
 
 ### Example: walking an order through its lifecycle
 

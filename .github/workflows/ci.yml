@@ -1,8 +1,9 @@
 name: CI
 
 on:
+  # Every branch, so a feature branch shows its status before a PR is opened.
   push:
-    branches: [main]
+    branches: ["**"]
   pull_request:
     branches: [main]
   workflow_dispatch:

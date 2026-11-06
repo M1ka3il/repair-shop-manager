@@ -76,7 +76,7 @@
   color: var(--muted);
 }
 
-/* Series colours: validated pair (CVD ΔE 32, normal ΔE 40, ≥3:1 on white). */
+/* Series colours come from tokens: validated per mode (see styles.css). */
 .swatch {
   display: inline-block;
   width: 10px;
@@ -86,11 +86,11 @@
 }
 .swatch-labour,
 .seg-labour {
-  background: #1f4fd1;
+  background: var(--series-labour);
 }
 .swatch-parts,
 .seg-parts {
-  background: #d97706;
+  background: var(--series-parts);
 }
 
 .chart-head {

@@ -16,6 +16,13 @@ Clone it, run `docker compose up`, open <http://localhost:4200> for the UI or
 ![Board: repair orders by status](docs/board.png)
 
 <details>
+<summary>Dark mode</summary>
+
+![Board in dark mode](docs/board-dark.png)
+
+</details>
+
+<details>
 <summary>Order detail, new order, customers, revenue report</summary>
 
 ![Order detail: lifecycle, line items, totals](docs/order-detail.png)

@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ThemeService } from './core/theme/theme';
 
 /** Application shell: header with navigation, routed page below. */
 @Component({
@@ -10,6 +11,8 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
+  protected readonly theme = inject(ThemeService);
+
   protected readonly nav = [
     { path: '/board', label: 'Board' },
     { path: '/customers', label: 'Kunden' },

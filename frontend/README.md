@@ -61,6 +61,20 @@ src/app/
 └── app.routes.ts      route table
 ```
 
+## Look and feel
+
+- **Light and dark mode** from one set of colour tokens in `src/styles.css`; no
+  component hard-codes a colour. Default follows the OS (`prefers-color-scheme`);
+  the toggle in the top bar cycles System → Hell → Dunkel and stores the choice
+  in `localStorage`. A small script in `index.html` applies it before Angular
+  starts, so dark mode never flashes white.
+- Text pairs checked for WCAG ≥ 4.5:1 in both modes; the two chart series are
+  validated per mode (lightness band, colour-blind separation, contrast).
+- **Inter is self-hosted** (`@fontsource-variable/inter`, OFL), not loaded from
+  Google Fonts: in Germany, embedding Google Fonts transfers visitors' IP
+  addresses to Google and has led to cease-and-desist letters (e.g. LG München,
+  2022).
+
 ## Scripts
 
 | Script | Purpose |

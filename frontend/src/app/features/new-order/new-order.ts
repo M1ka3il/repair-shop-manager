@@ -22,6 +22,13 @@ import { finalize, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { CustomersApi } from '../../core/api/customers.api';
 import { RepairOrdersApi } from '../../core/api/repair-orders.api';
 import { toApiError } from '../../core/http/api-error';
+import {
+  customerControls,
+  toCustomerRequest,
+  toVehicleRequest,
+  vehicleControls,
+} from '../../shared/forms/master-data-forms';
+import { validationMessage } from '../../shared/forms/validation-message';
 import { type Notice, NoticeView } from '../../shared/notice/notice';
 import { searchVehicles, toVehicleOptions } from './vehicle-search';
 
@@ -106,31 +113,8 @@ export class NewOrder {
 
   protected readonly vehicleForm = new FormGroup({
     customer: new FormControl<number | 'new'>('new', { nonNullable: true }),
-    name: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.minLength(2), Validators.maxLength(200)],
-    }),
-    email: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.email, Validators.maxLength(200)],
-    }),
-    phone: new FormControl('', { nonNullable: true, validators: Validators.maxLength(50) }),
-    licensePlate: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(15)],
-    }),
-    make: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(100)],
-    }),
-    model: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(100)],
-    }),
-    year: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.pattern(/^\d{4}$/)],
-    }),
+    ...customerControls(),
+    ...vehicleControls(),
   });
 
   protected readonly orderForm = new FormGroup({
@@ -171,30 +155,19 @@ export class NewOrder {
     }
 
     const value = this.vehicleForm.getRawValue();
-    const vehicleRequest = {
-      licensePlate: value.licensePlate.trim(),
-      make: value.make.trim(),
-      model: value.model.trim(),
-      year: Number(value.year),
-    };
+    const vehicleRequest = toVehicleRequest(value);
 
     const customerId$ =
       value.customer === 'new'
-        ? this.customersApi
-            .createCustomer({
-              name: value.name.trim(),
-              email: value.email.trim() || null,
-              phone: value.phone.trim() || null,
-            })
-            .pipe(
-              // Remember the customer right away: if the vehicle is rejected,
-              // the retry must not create them a second time.
-              tap((customer) => {
-                this.vehicleForm.controls.customer.setValue(customer.id);
-                this.data.reload();
-              }),
-              map((customer) => customer.id),
-            )
+        ? this.customersApi.createCustomer(toCustomerRequest(value)).pipe(
+            // Remember the customer right away: if the vehicle is rejected,
+            // the retry must not create them a second time.
+            tap((customer) => {
+              this.vehicleForm.controls.customer.setValue(customer.id);
+              this.data.reload();
+            }),
+            map((customer) => customer.id),
+          )
         : of(value.customer);
 
     this.pending.set(true);
@@ -261,18 +234,8 @@ export class NewOrder {
     this.plateConflict.set(null);
   }
 
-  /** Validation message once the user had a chance to fill the field in. */
   protected errorFor(control: AbstractControl, submitted: boolean): string | null {
-    if (control.valid || control.disabled || !(control.touched || submitted)) {
-      return null;
-    }
-    const errors = control.errors ?? {};
-    if (errors['required']) return 'Pflichtfeld.';
-    if (errors['minlength']) return `Mindestens ${errors['minlength'].requiredLength} Zeichen.`;
-    if (errors['maxlength']) return `Höchstens ${errors['maxlength'].requiredLength} Zeichen.`;
-    if (errors['email']) return 'Keine gültige E-Mail-Adresse.';
-    if (errors['pattern']) return 'Vierstellige Jahreszahl, z. B. 2021.';
-    return 'Ungültig.';
+    return validationMessage(control, submitted);
   }
 
   private toggleCustomerFields(enabled: boolean): void {

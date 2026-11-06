@@ -52,9 +52,10 @@ src/app/
 │   ├── board/         start page: orders by status, status changes
 │   ├── order-detail/  lifecycle, description, line items, totals, delete
 │   ├── new-order/     find or register the vehicle (and customer), then open the order
+│   ├── customers/     master data: customers and their vehicles, selection in the URL
 │   └── placeholder/   screens from the mockups not built yet
 ├── shared/
-│   ├── forms/     German decimal input ("89,50") with range validation
+│   ├── forms/     German decimal input, customer/vehicle form controls, validation messages
 │   └── notice/    success/error feedback after an action
 ├── app.ts / app.html  shell with navigation
 └── app.routes.ts      route table

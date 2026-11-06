@@ -25,6 +25,13 @@ public class RepairShopDbContext(DbContextOptions<RepairShopDbContext> options)
         base.OnModelCreating(modelBuilder);
     }
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // All timestamps are UTC; see UtcDateTimeConverter for why this is needed.
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+        configurationBuilder.Properties<DateTime?>().HaveConversion<NullableUtcDateTimeConverter>();
+    }
+
     Task<int> IUnitOfWork.SaveChangesAsync(CancellationToken cancellationToken) =>
         SaveChangesAsync(cancellationToken);
 }

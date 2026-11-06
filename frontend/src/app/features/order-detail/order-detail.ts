@@ -27,6 +27,7 @@ import { RepairOrdersApi } from '../../core/api/repair-orders.api';
 import { toApiError } from '../../core/http/api-error';
 import { STATUSES, isWorkFinished, statusMeta } from '../../core/status/repair-order-status';
 import { decimalInRange, parseDecimal } from '../../shared/forms/decimal';
+import { validationMessage } from '../../shared/forms/validation-message';
 import { type Notice, NoticeView } from '../../shared/notice/notice';
 import { actionLabel, lifecycleSteps } from './lifecycle';
 
@@ -227,17 +228,7 @@ export class OrderDetail {
 
   /** Validation message for a control, once the user has had a chance to fill it in. */
   protected errorFor(control: AbstractControl, min = '', max = ''): string | null {
-    if (control.valid || !(control.touched || this.itemSubmitted())) {
-      return null;
-    }
-    const errors = control.errors ?? {};
-    if (errors['required']) return 'Pflichtfeld.';
-    if (errors['minlength']) return `Mindestens ${errors['minlength'].requiredLength} Zeichen.`;
-    if (errors['maxlength']) return `Höchstens ${errors['maxlength'].requiredLength} Zeichen.`;
-    if (errors['decimal']) return 'Zahl mit höchstens 2 Nachkommastellen, z. B. 89,50.';
-    if (errors['min']) return `Mindestens ${min}.`;
-    if (errors['max']) return `Höchstens ${max}.`;
-    return 'Ungültig.';
+    return validationMessage(control, this.itemSubmitted(), { min, max });
   }
 
   /**

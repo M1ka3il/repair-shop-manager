@@ -1,5 +1,7 @@
 import type { Routes } from '@angular/router';
 
+const customers = () => import('./features/customers/customers').then((m) => m.Customers);
+
 const placeholder = () => import('./features/placeholder/placeholder').then((m) => m.Placeholder);
 
 export const routes: Routes = [
@@ -20,10 +22,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/order-detail/order-detail').then((m) => m.OrderDetail),
   },
   {
+    // One component for the list, a selected customer and a new one; ":id" may
+    // be "new". The selection lives in the URL so it can be linked and reloaded.
     path: 'customers',
     title: 'Kunden · Werkstatt',
-    loadComponent: placeholder,
-    data: { title: 'Kunden & Fahrzeuge', planned: 'Stammdaten anlegen und korrigieren.' },
+    loadComponent: customers,
+  },
+  {
+    path: 'customers/:id',
+    title: 'Kunden · Werkstatt',
+    loadComponent: customers,
   },
   {
     path: 'reports/revenue',

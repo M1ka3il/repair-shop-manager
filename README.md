@@ -429,7 +429,7 @@ Listed as a roadmap, not as gaps:
 
 - A decoupled `BackgroundService` with a queue (e.g. asynchronous invoice dispatch)
 - JWT authentication and role-based authorisation
-- Remaining UI screens (customers, report)
+- Remaining UI screen: revenue report
 
 ---
 

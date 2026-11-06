@@ -100,3 +100,20 @@ a:hover {
 .alert strong {
   display: block;
 }
+
+.notice {
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: #e4f4ee;
+  border: 1px solid #9fd6c3;
+  color: #0b5a45;
+}
+.notice strong {
+  display: block;
+}
+.notice.notice-error {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger-ink);
+}

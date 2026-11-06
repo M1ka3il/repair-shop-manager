@@ -24,3 +24,8 @@ export const STATUSES: readonly StatusMeta[] = [
 export function isWorkFinished(status: RepairOrderStatus): boolean {
   return status === 'Completed' || status === 'Invoiced';
 }
+
+/** Display metadata for one status. */
+export function statusMeta(status: RepairOrderStatus): StatusMeta {
+  return STATUSES.find((meta) => meta.status === status)!;
+}

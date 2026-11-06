@@ -115,6 +115,7 @@ public class RepairOrderEndpointsTests
 
         var created = await ReadAsync<RepairOrderDto>(createResponse);
         Assert.That(created.Status, Is.EqualTo(RepairOrderStatus.Received));
+        Assert.That(created.AllowedTransitions, Is.EqualTo(new[] { RepairOrderStatus.InProgress }));
 
         // Book labour and a part.
         var withItems = await PatchOrPostAsync<RepairOrderDto>(
@@ -132,6 +133,7 @@ public class RepairOrderEndpointsTests
         {
             Assert.That(invoiced.Status, Is.EqualTo(RepairOrderStatus.Invoiced));
             Assert.That(invoiced.CompletedAtUtc, Is.Not.Null);
+            Assert.That(invoiced.AllowedTransitions, Is.Empty, "Invoiced is terminal");
         });
 
         // And the rule that matters: no way back out of Invoiced — 400, not 500.

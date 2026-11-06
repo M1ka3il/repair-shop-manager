@@ -1190,7 +1190,8 @@
           "completedAtUtc",
           "description",
           "totalPrice",
-          "items"
+          "items",
+          "allowedTransitions"
         ],
         "type": "object",
         "properties": {
@@ -1243,6 +1244,13 @@
               "$ref": "#/components/schemas/RepairItemDto"
             },
             "description": "Labour and parts booked on this order."
+          },
+          "allowedTransitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepairOrderStatus"
+            },
+            "description": "Statuses this order may move to next, computed by the domain. Empty once\ninvoiced. Clients offer these instead of duplicating the lifecycle rules."
           }
         },
         "additionalProperties": false,

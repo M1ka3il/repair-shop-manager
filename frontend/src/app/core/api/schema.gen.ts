@@ -941,6 +941,11 @@ export interface components {
       totalPrice: number;
       /** @description Labour and parts booked on this order. */
       items: components['schemas']['RepairItemDto'][];
+      /**
+       * @description Statuses this order may move to next, computed by the domain. Empty once
+       *     invoiced. Clients offer these instead of duplicating the lifecycle rules.
+       */
+      allowedTransitions: components['schemas']['RepairOrderStatus'][];
     };
     /**
      * @description Lifecycle of a repair order. Values are explicit so that reordering the enum

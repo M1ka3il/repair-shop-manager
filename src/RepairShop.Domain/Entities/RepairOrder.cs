@@ -70,6 +70,13 @@ public class RepairOrder
     /// </summary>
     private bool IsWorkFinished => Status is RepairOrderStatus.Completed or RepairOrderStatus.Invoiced;
 
+    /// <summary>
+    /// The statuses reachable from the current one, in lifecycle order. Exposed so
+    /// a client can offer exactly these moves instead of keeping its own copy of
+    /// the transition table; <see cref="TransitionTo"/> still enforces them.
+    /// </summary>
+    public IReadOnlyList<RepairOrderStatus> AllowedTargets => AllowedTransitions[Status];
+
     /// <summary>True if <paramref name="target"/> is reachable from the current status.</summary>
     public bool CanTransitionTo(RepairOrderStatus target) =>
         AllowedTransitions.TryGetValue(Status, out var allowed) && allowed.Contains(target);

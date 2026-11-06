@@ -10,7 +10,10 @@ repair orders, repair orders carry labour and parts lines. The order lifecycle
 domain layer, so an invoiced job cannot be pushed back into production — the caller gets
 a business error, not a 500.
 
-Clone it, run `docker compose up`, open <http://localhost:8080>. Nothing else to install.
+Clone it, run `docker compose up`, open <http://localhost:4200> for the UI or
+<http://localhost:8080> for Swagger. Nothing else to install.
+
+![Board: repair orders by status](docs/board.png)
 
 ---
 
@@ -41,7 +44,8 @@ cp .env.example .env      # then edit .env and set your own password
 docker compose up --build
 ```
 
-Then open <http://localhost:8080> — Swagger UI is served at the root. The database
+Then open <http://localhost:4200> for the Angular UI, or <http://localhost:8080>
+for Swagger UI. The database
 schema is created by EF Core migrations on startup and seeded with a handful of
 customers, vehicles and orders in different statuses, so the first request already
 returns something meaningful.
@@ -304,12 +308,14 @@ With several instances this would race, so a real deployment moves migrations in
 separate step — the trade-off is stated in the code and switchable via
 `Database:AutoMigrate`.
 
-### No frontend?
+### Frontend: Angular, behind the same origin
 
-This is a backend service and is scoped as one; Swagger is the interface. Angular would
-double the effort and shift the centre of gravity away from what the repo is meant to
-show — domain logic, layering, operational maturity. It is on the "possible later" list,
-not the "missing" list.
+An Angular 22 app in [`frontend/`](frontend/README.md). nginx serves it and proxies
+`/api` to the backend, so the browser sees a single origin and the API needs no CORS
+configuration. The TypeScript types are generated from a committed OpenAPI snapshot,
+and a backend integration test fails when the API drifts from it — so a contract
+change cannot silently break the UI. Business rules are not duplicated in the
+frontend: it renders what the API allows and shows the API's own error messages.
 
 ---
 
@@ -339,6 +345,7 @@ dotnet test
 | `RepairShop.Domain.Tests` | Unit (NUnit) | Status transitions, item rules, `LicensePlate` — no database |
 | `RepairShop.Application.Tests` | Unit (NUnit + Moq) | Use-case orchestration with mocked repositories |
 | `RepairShop.IntegrationTests` | Integration (Testcontainers) | Endpoints end-to-end against a real SQL Server |
+| `frontend` (`npm test`) | Unit (Vitest) | Board rendering against a mocked HTTP backend, error mapping, status grouping |
 
 The emphasis is the status flow: every legal transition, every illegal one, and the
 terminal behaviour of `Invoiced` are covered explicitly, including the assertion that a
@@ -390,12 +397,13 @@ database just to read the model.
 │   ├── RepairShop.Application/     Use cases, DTOs, ports
 │   ├── RepairShop.Infrastructure/  EF Core, migrations, repositories, T-SQL report
 │   └── RepairShop.Api/             Controllers, middleware, Swagger, Dockerfile
+├── frontend/                       Angular 22 UI, nginx config, OpenAPI snapshot
 ├── tests/
 │   ├── RepairShop.Domain.Tests/        NUnit
 │   ├── RepairShop.Application.Tests/   NUnit + Moq
 │   └── RepairShop.IntegrationTests/    Testcontainers + SQL Server
 ├── .github/workflows/ci.yml        Build, test, docker build
-├── docker-compose.yml              SQL Server + API
+├── docker-compose.yml              SQL Server + API + web UI
 └── .env.example                    Template for the local password
 ```
 
@@ -407,7 +415,7 @@ Listed as a roadmap, not as gaps:
 
 - A decoupled `BackgroundService` with a queue (e.g. asynchronous invoice dispatch)
 - JWT authentication and role-based authorisation
-- An Angular frontend on top of the existing API
+- Remaining UI screens (order detail, new order, customers, report) and moving cards on the board
 
 ---
 

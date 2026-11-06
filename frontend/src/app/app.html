@@ -1,0 +1,34 @@
+<a class="skip-link" href="#main">Zum Inhalt springen</a>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" routerLink="/board">
+      <svg
+        aria-hidden="true"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"
+        />
+      </svg>
+      <span>Werkstatt</span>
+    </a>
+    <nav aria-label="Hauptnavigation">
+      @for (item of nav; track item.path) {
+        <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">{{
+          item.label
+        }}</a>
+      }
+    </nav>
+    <a class="btn btn-primary new-order" routerLink="/orders/new">Neuer Auftrag</a>
+  </div>
+</header>
+<main id="main" class="page">
+  <router-outlet />
+</main>

@@ -62,3 +62,42 @@ jobs:
       # Proves the claim in the README: a fresh clone really does build.
       - name: Build API image
         run: docker build -f src/RepairShop.Api/Dockerfile -t repair-shop-api:ci .
+
+      - name: Build web image
+        run: docker build -t repair-shop-web:ci frontend
+
+  frontend:
+    name: Frontend build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      # The snapshot itself is guarded by OpenApiContractTests on the backend;
+      # this guards the other half: types regenerated after the snapshot changed.
+      - name: Generated API types match the OpenAPI snapshot
+        run: |
+          npm run api:types
+          git diff --exit-code -- src/app/core/api/schema.gen.ts
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build
+        run: npm run build

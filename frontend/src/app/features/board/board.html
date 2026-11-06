@@ -1,0 +1,54 @@
+<div class="page-head">
+  <h1>Aufträge</h1>
+  <p class="muted">Alle Reparaturaufträge nach Status.</p>
+</div>
+
+@if (error(); as e) {
+  <div class="alert" role="alert">
+    <div>
+      <strong>{{ e.title }}</strong>
+      <span>{{ e.detail }}</span>
+    </div>
+    <button type="button" class="btn btn-secondary" (click)="orders.reload()">
+      Erneut versuchen
+    </button>
+  </div>
+}
+
+<div class="columns" [attr.aria-busy]="orders.isLoading()">
+  @for (column of columns(); track column.status) {
+    <section class="column" [attr.aria-labelledby]="'col-' + column.status">
+      <header class="column-head">
+        <span
+          class="dot"
+          aria-hidden="true"
+          [style.background]="'var(' + column.colorVar + ')'"
+        ></span>
+        <h2 [id]="'col-' + column.status">{{ column.label }}</h2>
+        <span class="count">{{ column.orders.length }}</span>
+      </header>
+
+      @for (order of column.orders; track order.id) {
+        <a class="card" [routerLink]="['/orders', order.id]">
+          <span class="card-top">
+            <span class="plate">{{ order.licensePlate }}</span>
+            @if (isWorkFinished(order.status)) {
+              <span class="lock" title="Arbeit abgeschlossen">gesperrt</span>
+            }
+            <span class="id">#{{ order.id }}</span>
+          </span>
+          <span class="customer">{{ order.customerName }}</span>
+          <span class="desc">{{ order.description }}</span>
+          <span class="card-foot">
+            <span>{{ order.receivedAtUtc | date: 'dd.MM.yyyy' }}</span>
+            <strong>{{ order.totalPrice | currency: 'EUR' }}</strong>
+          </span>
+        </a>
+      } @empty {
+        @if (!orders.isLoading()) {
+          <p class="empty">Keine Aufträge</p>
+        }
+      }
+    </section>
+  }
+</div>

@@ -12,14 +12,12 @@ export const routes: Routes = [
   {
     path: 'orders/new',
     title: 'Neuer Auftrag · Werkstatt',
-    loadComponent: placeholder,
-    data: { title: 'Neuer Auftrag', planned: 'Fahrzeugsuche, Fahrzeug anlegen, Beschreibung.' },
+    loadComponent: () => import('./features/new-order/new-order').then((m) => m.NewOrder),
   },
   {
     path: 'orders/:id',
     title: 'Auftrag · Werkstatt',
-    loadComponent: placeholder,
-    data: { title: 'Auftragsdetail', planned: 'Statuswechsel, Positionen, Summen.' },
+    loadComponent: () => import('./features/order-detail/order-detail').then((m) => m.OrderDetail),
   },
   {
     path: 'customers',

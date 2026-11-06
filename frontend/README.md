@@ -49,8 +49,13 @@ src/app/
 │   ├── http/      ApiError + interceptor: every failure arrives as one type
 │   └── status/    status labels and colours (display only — rules stay in the backend)
 ├── features/
-│   ├── board/        start page: orders by status
-│   └── placeholder/  screens from the mockups not built yet
+│   ├── board/         start page: orders by status, status changes
+│   ├── order-detail/  lifecycle, description, line items, totals, delete
+│   ├── new-order/     find or register the vehicle (and customer), then open the order
+│   └── placeholder/   screens from the mockups not built yet
+├── shared/
+│   ├── forms/     German decimal input ("89,50") with range validation
+│   └── notice/    success/error feedback after an action
 ├── app.ts / app.html  shell with navigation
 └── app.routes.ts      route table
 ```

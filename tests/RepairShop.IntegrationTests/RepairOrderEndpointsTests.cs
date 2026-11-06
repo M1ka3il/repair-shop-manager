@@ -152,6 +152,94 @@ public class RepairOrderEndpointsTests
         Assert.That(stillThere.Status, Is.EqualTo(RepairOrderStatus.Invoiced));
     }
 
+    /// <summary>
+    /// The path a UI takes for a walk-in customer: customer → vehicle → order.
+    /// Also covers plate normalisation and the unique index as seen over HTTP.
+    /// </summary>
+    [Test]
+    public async Task MasterData_CustomerVehicleOrder_HappyPathAndPlateConflict()
+    {
+        // A per-run plate, so re-running against the same container cannot collide.
+        var plate = $"HH-QA {Random.Shared.Next(1, 9999)}";
+
+        var customerResponse = await _client.PostAsJsonAsync("/api/customers", new
+        {
+            name = "Laufkundschaft GmbH",
+            email = "werkstatt@example.com"
+        });
+        Assert.That(customerResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        Assert.That(customerResponse.Headers.Location, Is.Not.Null);
+        var customer = await ReadAsync<CustomerDto>(customerResponse);
+
+        var vehicleResponse = await _client.PostAsJsonAsync($"/api/customers/{customer.Id}/vehicles", new
+        {
+            licensePlate = plate.ToLowerInvariant(),
+            make = "Skoda",
+            model = "Octavia",
+            year = 2019
+        });
+        Assert.That(vehicleResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var vehicle = await ReadAsync<VehicleDto>(vehicleResponse);
+        Assert.That(vehicle.LicensePlate, Is.EqualTo(plate), "the server normalises the plate");
+
+        // Same plate on another vehicle → 409, not a 500 from the unique index.
+        var duplicate = await _client.PostAsJsonAsync($"/api/customers/{customer.Id}/vehicles", new
+        {
+            licensePlate = plate,
+            make = "Skoda",
+            model = "Fabia",
+            year = 2015
+        });
+        Assert.That(duplicate.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+
+        // Correcting the vehicle while keeping its own plate is fine.
+        var update = await _client.PutAsJsonAsync($"/api/vehicles/{vehicle.Id}", new
+        {
+            licensePlate = plate,
+            make = "Skoda",
+            model = "Octavia Combi",
+            year = 2019
+        });
+        Assert.That(update.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And the new vehicle is immediately usable for an order.
+        var order = await _client.PostAsJsonAsync("/api/repair-orders", new
+        {
+            vehicleId = vehicle.Id,
+            description = "Inspektion"
+        });
+        Assert.That(order.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        var reloaded = await GetAsync<CustomerDto>($"/api/customers/{customer.Id}");
+        Assert.That(reloaded.Vehicles.Single().Model, Is.EqualTo("Octavia Combi"));
+    }
+
+    [Test]
+    public async Task AddVehicle_MalformedPlate_Returns400()
+    {
+        var response = await _client.PostAsJsonAsync("/api/customers/1/vehicles", new
+        {
+            licensePlate = "kein kennzeichen",
+            make = "VW",
+            model = "Golf",
+            year = 2020
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task CreateCustomer_InvalidEmail_Returns400()
+    {
+        var response = await _client.PostAsJsonAsync("/api/customers", new
+        {
+            name = "Anna Becker",
+            email = "keine-mail"
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
     [Test]
     public async Task CreateRepairOrder_UnknownVehicle_Returns404()
     {

@@ -60,6 +60,7 @@ public class RepairOrderService(
     public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
         var order = await LoadAsync(id, cancellationToken);
+        order.EnsureCanBeDeleted();
         orders.Remove(order);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

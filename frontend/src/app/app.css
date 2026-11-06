@@ -11,8 +11,9 @@
 }
 
 .topbar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--topbar-border);
+  box-shadow: 0 2px 8px rgba(10, 15, 25, 0.18);
 }
 .topbar-inner {
   max-width: 1440px;
@@ -30,11 +31,15 @@
   gap: 10px;
   font-weight: 700;
   font-size: 17px;
-  color: var(--ink);
+  color: var(--topbar-ink);
   text-decoration: none;
 }
 .brand svg {
-  color: var(--accent);
+  box-sizing: content-box;
+  padding: 6px;
+  border-radius: 8px;
+  background: var(--primary-bg);
+  color: var(--on-accent);
 }
 nav {
   display: flex;
@@ -44,18 +49,37 @@ nav {
 nav a {
   padding: 10px 14px;
   border-radius: 8px;
-  color: var(--ink-soft);
+  color: var(--topbar-muted);
   font-weight: 500;
   font-size: 14px;
   text-decoration: none;
 }
+nav a:hover {
+  color: var(--topbar-ink);
+}
 nav a.active {
-  background: var(--accent-tint);
-  color: var(--accent);
+  background: var(--topbar-active);
+  color: var(--topbar-ink);
   font-weight: 600;
 }
-.new-order {
+.theme-toggle {
   margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--topbar-active);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--topbar-muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.theme-toggle:hover {
+  color: var(--topbar-ink);
+  background: var(--topbar-active);
 }
 
 .page {

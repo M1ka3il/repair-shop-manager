@@ -1,20 +1,48 @@
-/* Design tokens — same palette as the UI mockups. */
+/*
+ * Design tokens. Every colour in the app comes from here, so light and dark
+ * mode are two sets of values for the same names — never two stylesheets.
+ *
+ * Theme selection: <html data-theme="light|dark"> forces a mode; without it
+ * the OS preference applies (prefers-color-scheme). Set early in index.html.
+ * All text pairs checked for WCAG ≥ 4.5:1; chart series validated per mode.
+ */
 :root {
-  --bg: #f4f5f7;
+  color-scheme: light;
+
+  --bg: #eef1f6;
+  --bg-dots: rgba(31, 79, 209, 0.09);
   --surface: #ffffff;
-  --column-bg: #ebedf1;
+  --column-bg: #e4e8ef;
   --border: #dde1e8;
   --border-soft: #eef0f3;
+  --border-strong: #c9ced8;
+  --shadow: 0 1px 2px rgba(20, 28, 43, 0.06), 0 4px 14px rgba(20, 28, 43, 0.06);
   --ink: #15171c;
   --ink-soft: #3b414d;
   --muted: #5b6270;
   --accent: #1f4fd1;
   --accent-hover: #163a9e;
   --accent-tint: #e8eefc;
+  --on-accent: #ffffff;
+  --primary-bg: #1f4fd1;
+  --primary-bg-hover: #163a9e;
   --focus: rgba(31, 79, 209, 0.45);
   --danger-bg: #fdecec;
   --danger-border: #f2b8b8;
   --danger-ink: #8f1d1d;
+  --danger-strong: #b42318;
+  --ok-bg: #e4f4ee;
+  --ok-border: #9fd6c3;
+  --ok-ink: #0b5a45;
+  --part-bg: #fdf1e4;
+  --part-ink: #93450a;
+
+  /* The top bar stays dark in both modes: it frames the app. */
+  --topbar-bg: #141c2b;
+  --topbar-ink: #ffffff;
+  --topbar-muted: #c5cfdf;
+  --topbar-active: #2a3550;
+  --topbar-border: #141c2b;
 
   --status-received: #5b6270;
   --status-in-progress: #1f4fd1;
@@ -22,8 +50,98 @@
   --status-completed: #0f7b5f;
   --status-invoiced: #15171c;
 
-  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Chart series, validated on #ffffff: CVD ΔE 32, normal ΔE 40, ≥ 3:1. */
+  --series-labour: #1f4fd1;
+  --series-parts: #d97706;
+
+  --font-sans: 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+/* Dark values. Listed twice on purpose: once for the OS preference (unless the
+   user forced light), once for an explicit choice of dark. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0f141c;
+    --bg-dots: rgba(122, 162, 255, 0.07);
+    --surface: #18202b;
+    --column-bg: #1c2532;
+    --border: #2b3646;
+    --border-soft: #222c3a;
+    --border-strong: #3a4659;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.25);
+    --ink: #e8ecf2;
+    --ink-soft: #c3cbd8;
+    --muted: #94a1b5;
+    --accent: #7aa2ff;
+    --accent-hover: #a3bfff;
+    --accent-tint: #1f2c4d;
+    --on-accent: #ffffff;
+    --primary-bg: #2f63e8;
+    --primary-bg-hover: #4a78f0;
+    --focus: rgba(122, 162, 255, 0.55);
+    --danger-bg: #3a1f22;
+    --danger-border: #6b2c2f;
+    --danger-ink: #ffb4b0;
+    --danger-strong: #ff6b63;
+    --ok-bg: #123128;
+    --ok-border: #2a6b55;
+    --ok-ink: #8fe0c1;
+    --part-bg: #3a2a17;
+    --part-ink: #f5b56b;
+    --topbar-bg: #0b1018;
+    --topbar-active: #222c40;
+    --topbar-border: #222c3a;
+    --status-received: #94a1b5;
+    --status-in-progress: #7aa2ff;
+    --status-waiting: #f0a14a;
+    --status-completed: #3cc49a;
+    --status-invoiced: #e8ecf2;
+    /* Validated on #18202b: CVD ΔE 27, normal ΔE 32, ≥ 3:1. */
+    --series-labour: #3987e5;
+    --series-parts: #d97706;
+  }
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f141c;
+  --bg-dots: rgba(122, 162, 255, 0.07);
+  --surface: #18202b;
+  --column-bg: #1c2532;
+  --border: #2b3646;
+  --border-soft: #222c3a;
+  --border-strong: #3a4659;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 14px rgba(0, 0, 0, 0.25);
+  --ink: #e8ecf2;
+  --ink-soft: #c3cbd8;
+  --muted: #94a1b5;
+  --accent: #7aa2ff;
+  --accent-hover: #a3bfff;
+  --accent-tint: #1f2c4d;
+  --on-accent: #ffffff;
+  --primary-bg: #2f63e8;
+  --primary-bg-hover: #4a78f0;
+  --focus: rgba(122, 162, 255, 0.55);
+  --danger-bg: #3a1f22;
+  --danger-border: #6b2c2f;
+  --danger-ink: #ffb4b0;
+  --danger-strong: #ff6b63;
+  --ok-bg: #123128;
+  --ok-border: #2a6b55;
+  --ok-ink: #8fe0c1;
+  --part-bg: #3a2a17;
+  --part-ink: #f5b56b;
+  --topbar-bg: #0b1018;
+  --topbar-active: #222c40;
+  --topbar-border: #222c3a;
+  --status-received: #94a1b5;
+  --status-in-progress: #7aa2ff;
+  --status-waiting: #f0a14a;
+  --status-completed: #3cc49a;
+  --status-invoiced: #e8ecf2;
+  --series-labour: #3987e5;
+  --series-parts: #d97706;
 }
 
 * {
@@ -34,11 +152,16 @@ body {
   margin: 0;
 }
 body {
-  background: var(--bg);
+  min-height: 100vh;
+  background-color: var(--bg);
+  /* Engineering-paper dot grid: structure without competing with content. */
+  background-image: radial-gradient(var(--bg-dots) 1px, transparent 1px);
+  background-size: 18px 18px;
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
 }
 a {
   color: var(--accent);
@@ -70,13 +193,13 @@ a:hover {
   cursor: pointer;
 }
 .btn-primary {
-  background: var(--accent);
-  color: #fff;
+  background: var(--primary-bg);
+  color: var(--on-accent);
   border: 0;
 }
 .btn-primary:hover {
-  background: var(--accent-hover);
-  color: #fff;
+  background: var(--primary-bg-hover);
+  color: var(--on-accent);
 }
 .btn-secondary {
   background: var(--surface);
@@ -105,9 +228,9 @@ a:hover {
   border-radius: 10px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  background: #e4f4ee;
-  border: 1px solid #9fd6c3;
-  color: #0b5a45;
+  background: var(--ok-bg);
+  border: 1px solid var(--ok-border);
+  color: var(--ok-ink);
 }
 .notice strong {
   display: block;
@@ -123,6 +246,7 @@ a:hover {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: var(--shadow);
   padding: 20px;
 }
 .panel h2 {
@@ -141,7 +265,7 @@ a:hover {
   min-height: 44px;
   width: 100%;
   padding: 0 12px;
-  border: 1px solid #c9ced8;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
   color: var(--ink);
@@ -153,7 +277,7 @@ textarea.input {
   resize: vertical;
 }
 .input[aria-invalid='true'] {
-  border: 2px solid #b42318;
+  border: 2px solid var(--danger-strong);
 }
 .input:disabled {
   background: var(--bg);

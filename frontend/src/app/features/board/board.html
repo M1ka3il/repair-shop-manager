@@ -48,7 +48,11 @@
 
 <div class="columns" [attr.aria-busy]="orders.isLoading()">
   @for (column of columns(); track column.status) {
-    <section class="column" [attr.aria-labelledby]="'col-' + column.status">
+    <section
+      class="column"
+      [attr.aria-labelledby]="'col-' + column.status"
+      [style.--column-accent]="'var(' + column.colorVar + ')'"
+    >
       <header class="column-head">
         <span
           class="dot"

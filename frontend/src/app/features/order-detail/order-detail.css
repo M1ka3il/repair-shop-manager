@@ -49,7 +49,7 @@
   flex-direction: column;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px dashed #c9ced8;
+  border: 1px dashed var(--border-strong);
   color: var(--muted);
 }
 .step-done {
@@ -123,8 +123,8 @@
   color: var(--accent);
 }
 .type-part {
-  background: #fdf1e4;
-  color: #93450a;
+  background: var(--part-bg);
+  color: var(--part-ink);
 }
 .strong {
   font-weight: 600;
@@ -146,7 +146,7 @@
   align-items: start;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px dashed #c9ced8;
+  border-top: 1px dashed var(--border-strong);
 }
 .item-form .grow {
   grid-column: span 2;

@@ -17,7 +17,7 @@ namespace RepairShop.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -96,6 +96,9 @@ namespace RepairShop.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTime?>("InvoicedAtUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("ReceivedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -108,6 +111,8 @@ namespace RepairShop.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("VehicleId");
+
+                    b.HasIndex("Status", "InvoicedAtUtc");
 
                     b.HasIndex("Status", "ReceivedAtUtc");
 

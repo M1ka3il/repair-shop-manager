@@ -242,6 +242,9 @@
           @if (o.completedAtUtc) {
             <br />Fertig {{ o.completedAtUtc | date: 'dd.MM.yyyy, HH:mm' }}
           }
+          @if (o.invoicedAtUtc) {
+            <br />Abgerechnet {{ o.invoicedAtUtc | date: 'dd.MM.yyyy, HH:mm' }}
+          }
         </p>
       </section>
 

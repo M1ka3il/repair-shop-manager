@@ -17,6 +17,7 @@ internal static class RepairOrderMapping
         order.Status,
         order.ReceivedAtUtc,
         order.CompletedAtUtc,
+        order.InvoicedAtUtc,
         order.Description,
         order.TotalPrice,
         [.. order.Items.Select(ToDto)],

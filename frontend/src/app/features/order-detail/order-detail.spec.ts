@@ -17,6 +17,7 @@ const order = (overrides: Partial<RepairOrder> = {}): RepairOrder => ({
   status: 'InProgress',
   receivedAtUtc: '2026-11-05T08:00:00Z',
   completedAtUtc: null,
+  invoicedAtUtc: null,
   description: 'Kupplung rutscht',
   totalPrice: 534,
   items: [
@@ -253,6 +254,24 @@ describe('OrderDetail', () => {
     );
     expect(buttons('.head-actions button')).toEqual([]);
     expect((el.querySelector('#description') as HTMLTextAreaElement).disabled).toBe(true);
+  });
+
+  it('shows when an invoiced order was completed and billed', async () => {
+    await load(
+      order({
+        status: 'Invoiced',
+        allowedTransitions: [],
+        completedAtUtc: '2026-11-03T15:00:00Z',
+        invoicedAtUtc: '2026-11-06T09:30:00Z',
+      }),
+    );
+
+    // Displayed in the browser's zone; the assertion builds the same local value.
+    const expected = new Date('2026-11-06T09:30:00Z');
+    const pad = (n: number) => String(n).padStart(2, '0');
+    expect(el.querySelector('.facts')?.textContent).toContain(
+      `Abgerechnet ${pad(expected.getDate())}.${pad(expected.getMonth() + 1)}.${expected.getFullYear()}, ${pad(expected.getHours())}:${pad(expected.getMinutes())}`,
+    );
   });
 
   it('shows a not-found page for an unknown order', async () => {

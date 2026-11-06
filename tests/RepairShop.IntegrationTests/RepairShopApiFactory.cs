@@ -38,6 +38,9 @@ public class RepairShopApiFactory : WebApplicationFactory<Program>, IAsyncDispos
         builder.UseEnvironment("Development");
     }
 
+    /// <summary>Connection string of the SQL Server container (default database).</summary>
+    public string ConnectionString => _database.GetConnectionString();
+
     /// <summary>Opens a context against the test database for assertions that bypass the API.</summary>
     public IServiceScope CreateScope() => Services.CreateScope();
 

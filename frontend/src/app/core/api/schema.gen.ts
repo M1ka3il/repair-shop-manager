@@ -932,6 +932,11 @@ export interface components {
        * @description When the work was finished, if it was.
        */
       completedAtUtc: string | null;
+      /**
+       * Format: date-time
+       * @description When the order was billed, if it was. Revenue is reported by this date.
+       */
+      invoicedAtUtc: string | null;
       /** @description What the customer reported. */
       description: string;
       /**

@@ -33,5 +33,8 @@ public class RepairOrderConfiguration : IEntityTypeConfiguration<RepairOrder>
 
         // The list endpoint filters by status and orders by receipt date.
         builder.HasIndex(o => new { o.Status, o.ReceivedAtUtc });
+
+        // The revenue report filters invoiced orders by invoice date.
+        builder.HasIndex(o => new { o.Status, o.InvoicedAtUtc });
     }
 }

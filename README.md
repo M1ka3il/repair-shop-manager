@@ -138,6 +138,7 @@ erDiagram
         int Status "lifecycle"
         datetime ReceivedAtUtc
         datetime CompletedAtUtc
+        datetime InvoicedAtUtc "set on invoicing"
         string Description
     }
     REPAIR_ITEM {
@@ -206,6 +207,12 @@ Clients do not need a copy of this table: every `RepairOrderDto` carries
 offers exactly those moves, and still shows the server's message if a move is rejected
 because someone else changed the order in the meantime.
 
+The transitions also record time: `Completed` stamps `CompletedAtUtc`, `Invoiced` stamps
+`InvoicedAtUtc` — the date revenue belongs to. The revenue report filters on it, so an
+order taken in on 31 October and billed on 6 November is November revenue. Orders
+invoiced before the column existed were backfilled from `CompletedAtUtc` by the
+migration, the closest date that was known.
+
 Related rules that live in the same place: line items cannot be added to or removed
 from a completed or invoiced order, a completed or invoiced order cannot be deleted
 (deleting billable work would be worse than editing it), and an invoiced order's
@@ -233,7 +240,7 @@ Swagger UI at <http://localhost:8080>, OpenAPI document at `/swagger/v1/swagger.
 | `POST` | `/api/customers/{id}/vehicles` | Register a vehicle (**201**); **409** if the plate is taken |
 | `GET` | `/api/vehicles`, `/api/vehicles/{id}` | Vehicles — useful for picking a `vehicleId` |
 | `PUT` | `/api/vehicles/{id}` | Correct plate, make, model, year (owner is fixed); **409** on a taken plate |
-| `GET` | `/api/reports/revenue-by-customer?from=&to=` | Revenue report (stored procedure) |
+| `GET` | `/api/reports/revenue-by-customer?from=&to=` | Revenue report by invoice date (stored procedure) |
 | `GET` | `/health` | Liveness probe |
 
 Status codes are used deliberately: **201** on create with a `Location` header, **204**
@@ -433,7 +440,6 @@ Listed as a roadmap, not as gaps:
 
 - A decoupled `BackgroundService` with a queue (e.g. asynchronous invoice dispatch)
 - JWT authentication and role-based authorisation
-- Revenue by invoice date instead of order intake date (needs an `InvoicedAtUtc` on the order)
 
 ---
 

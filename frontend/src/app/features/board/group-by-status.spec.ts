@@ -9,6 +9,7 @@ const order = (id: number, status: RepairOrderStatus): RepairOrder => ({
   status,
   receivedAtUtc: '2026-11-01T08:00:00Z',
   completedAtUtc: null,
+  invoicedAtUtc: null,
   description: 'Test',
   totalPrice: 0,
   items: [],

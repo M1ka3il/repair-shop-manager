@@ -317,6 +317,28 @@ public class RepairOrderEndpointsTests
     }
 
     /// <summary>
+    /// Revenue belongs to the day it was billed. A seeded order received 11–12
+    /// days ago and invoiced now must appear in a report for the last hour —
+    /// filtered by intake date, it would not.
+    /// </summary>
+    [Test]
+    public async Task RevenueByCustomer_CountsOrdersByInvoiceDate()
+    {
+        var completed = await GetAsync<List<RepairOrderDto>>("/api/repair-orders?status=Completed");
+        var old = completed.First(o => o.ReceivedAtUtc < DateTime.UtcNow.AddDays(-1));
+
+        var invoiced = await ChangeStatusAsync(old.Id, RepairOrderStatus.Invoiced);
+        Assert.That(invoiced.InvoicedAtUtc, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromMinutes(1)));
+
+        var from = Uri.EscapeDataString(DateTime.UtcNow.AddHours(-1).ToString("O"));
+        var to = Uri.EscapeDataString(DateTime.UtcNow.AddHours(1).ToString("O"));
+        var report = await GetAsync<List<CustomerRevenueDto>>(
+            $"/api/reports/revenue-by-customer?from={from}&to={to}");
+
+        Assert.That(report.Select(r => r.CustomerName), Does.Contain(old.CustomerName));
+    }
+
+    /// <summary>
     /// The period is a pair of instants. "2100-01-01T00:30:00+01:00" is
     /// 2099-12-31T23:30Z, so a period ending there must still be accepted as
     /// ending after a 2099-12-31T23:00Z start — proving the offset is applied

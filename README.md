@@ -431,7 +431,7 @@ Listed as a roadmap, not as gaps:
 
 - A decoupled `BackgroundService` with a queue (e.g. asynchronous invoice dispatch)
 - JWT authentication and role-based authorisation
-- Remaining UI screen: revenue report
+- Revenue by invoice date instead of order intake date (needs an `InvoicedAtUtc` on the order)
 
 ---
 

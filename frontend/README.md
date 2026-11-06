@@ -53,7 +53,7 @@ src/app/
 │   ├── order-detail/  lifecycle, description, line items, totals, delete
 │   ├── new-order/     find or register the vehicle (and customer), then open the order
 │   ├── customers/     master data: customers and their vehicles, selection in the URL
-│   └── placeholder/   screens from the mockups not built yet
+│   └── report/        revenue per customer: period, totals, stacked bars, table, CSV
 ├── shared/
 │   ├── forms/     German decimal input, customer/vehicle form controls, validation messages
 │   └── notice/    success/error feedback after an action

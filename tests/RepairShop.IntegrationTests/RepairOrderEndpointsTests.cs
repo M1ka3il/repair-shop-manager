@@ -316,6 +316,21 @@ public class RepairOrderEndpointsTests
         });
     }
 
+    /// <summary>
+    /// The period is a pair of instants. "2100-01-01T00:30:00+01:00" is
+    /// 2099-12-31T23:30Z, so a period ending there must still be accepted as
+    /// ending after a 2099-12-31T23:00Z start — proving the offset is applied
+    /// instead of being dropped (dropped, "from" would be after "to": 400).
+    /// </summary>
+    [Test]
+    public async Task RevenueByCustomer_HonoursOffsetsInThePeriod()
+    {
+        var response = await _client.GetAsync(
+            "/api/reports/revenue-by-customer?from=2099-12-31T23:00:00Z&to=2100-01-01T00:30:00%2B01:00");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+    }
+
     [Test]
     public async Task RevenueByCustomer_InvertedPeriod_Returns400()
     {

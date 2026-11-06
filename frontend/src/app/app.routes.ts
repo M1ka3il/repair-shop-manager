@@ -2,8 +2,6 @@ import type { Routes } from '@angular/router';
 
 const customers = () => import('./features/customers/customers').then((m) => m.Customers);
 
-const placeholder = () => import('./features/placeholder/placeholder').then((m) => m.Placeholder);
-
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'board' },
   {
@@ -36,8 +34,7 @@ export const routes: Routes = [
   {
     path: 'reports/revenue',
     title: 'Umsatz · Werkstatt',
-    loadComponent: placeholder,
-    data: { title: 'Umsatzbericht', planned: 'Zeitraum, Kennzahlen, Umsatz je Kunde.' },
+    loadComponent: () => import('./features/report/report').then((m) => m.Report),
   },
   { path: '**', redirectTo: 'board' },
 ];

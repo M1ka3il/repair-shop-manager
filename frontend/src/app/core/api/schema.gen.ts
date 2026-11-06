@@ -736,9 +736,9 @@ export interface paths {
     get: {
       parameters: {
         query?: {
-          /** @description Start of the period (inclusive, UTC). Defaults to one year ago. */
+          /** @description Start of the period (inclusive). ISO 8601; with an offset it is converted to UTC, without one it is taken as UTC. Defaults to one year before to. */
           from?: string;
-          /** @description End of the period (inclusive, UTC). Defaults to now. */
+          /** @description End of the period (inclusive, a point in time — send the end of the last day, not just its date). Same format as from. Defaults to now. */
           to?: string;
         };
         header?: never;

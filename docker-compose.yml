@@ -1,9 +1,10 @@
-# Everything this project needs: a SQL Server and the API.
+# Everything this project needs: a SQL Server, the API and the web UI.
 # Nothing has to be installed locally beyond Docker.
 #
 #   cp .env.example .env   # then set your own password
 #   docker compose up --build
-#   open http://localhost:8080
+#   open http://localhost:4200   (UI)
+#   open http://localhost:8080   (Swagger)
 
 services:
   db:
@@ -52,6 +53,18 @@ services:
       - ConnectionStrings__RepairShopDb=Server=db,1433;Database=RepairShop;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=True
     ports:
       - "8080:8080"
+    restart: on-failure
+
+  web:
+    build:
+      context: ./frontend
+    container_name: repairshop-web
+    depends_on:
+      - api
+    ports:
+      # The UI. nginx proxies /api to the api service, so the browser sees a
+      # single origin. Swagger stays reachable directly on :8080.
+      - "4200:80"
     restart: on-failure
 
 volumes:

@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi;
 using RepairShop.Api.Middleware;
+using RepairShop.Api.OpenApi;
 using RepairShop.Application;
 using RepairShop.Infrastructure;
 using RepairShop.Infrastructure.Persistence;
@@ -67,6 +68,10 @@ builder.Services.AddSwaggerGen(options =>
     }
 
     options.SupportNonNullableReferenceTypes();
+
+    // Response DTOs always carry every field; say so, so the generated
+    // frontend types are not optional everywhere.
+    options.SchemaFilter<DtoPropertiesRequiredSchemaFilter>();
 });
 
 var app = builder.Build();

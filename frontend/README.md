@@ -46,6 +46,7 @@ Components import friendly names from `core/api/models.ts`, not from the generat
 src/app/
 ├── core/
 │   ├── api/       generated schema, model aliases, typed HttpClient wrappers
+│   ├── auth/      session, bearer-token interceptor, route guards
 │   ├── http/      ApiError + interceptor: every failure arrives as one type
 │   └── status/    status labels and colours (display only — rules stay in the backend)
 ├── features/
@@ -53,6 +54,7 @@ src/app/
 │   ├── order-detail/  lifecycle, description, line items, totals, delete
 │   ├── new-order/     find or register the vehicle (and customer), then open the order
 │   ├── customers/     master data: customers and their vehicles, selection in the URL
+│   ├── login/         sign-in form
 │   └── report/        revenue per customer: period, totals, stacked bars, table, CSV
 ├── shared/
 │   ├── forms/     German decimal input, customer/vehicle form controls, validation messages
@@ -60,6 +62,14 @@ src/app/
 ├── app.ts / app.html  shell with navigation
 └── app.routes.ts      route table
 ```
+
+## Sign-in
+
+- `core/auth/`: `AuthService` (session in `sessionStorage`: closing the browser signs out),
+  `authInterceptor` (adds the bearer token to `/api/` calls; a 401 signs out and
+  returns to the login with `returnUrl`), `authGuard` / `roleGuard('Office')`.
+- After login only same-app paths are followed (`/x` yes, `//host` no — no open redirect).
+- The role shapes the UI (menu, buttons); the API enforces every rule itself.
 
 ## Look and feel
 

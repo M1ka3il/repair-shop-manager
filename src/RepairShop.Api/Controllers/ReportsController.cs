@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RepairShop.Application.Auth;
 using RepairShop.Application.Reporting;
 
 namespace RepairShop.Api.Controllers;
@@ -6,6 +8,9 @@ namespace RepairShop.Api.Controllers;
 /// <summary>Aggregated evaluations. Backed by T-SQL rather than LINQ — see the README.</summary>
 [ApiController]
 [Route("api/reports")]
+[Authorize(Roles = Roles.Office)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
 [Produces("application/json")]
 public class ReportsController(IRevenueReportQuery revenueReport) : ControllerBase
 {

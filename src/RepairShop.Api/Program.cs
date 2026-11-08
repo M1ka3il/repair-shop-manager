@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi;
+using RepairShop.Api.Auth;
 using RepairShop.Api.Middleware;
 using RepairShop.Api.OpenApi;
 using RepairShop.Application;
@@ -24,7 +25,8 @@ var connectionString = builder.Configuration.GetConnectionString("RepairShopDb")
 // One registration call per layer — the composition root stays readable and the
 // dependency direction (API → Application → Domain) is visible at a glance.
 builder.Services.AddApplication();
-builder.Services.AddInfrastructure(connectionString);
+builder.Services.AddInfrastructure(connectionString, builder.Configuration);
+builder.Services.AddApiAuth(builder.Configuration);
 
 builder.Services
     .AddControllers()
@@ -69,6 +71,19 @@ builder.Services.AddSwaggerGen(options =>
 
     options.SupportNonNullableReferenceTypes();
 
+    // "Authorize" button in Swagger UI: paste the token from POST /api/auth/token.
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Token from POST /api/auth/token"
+    });
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+    });
+
     // Response DTOs always carry every field; say so, so the generated
     // frontend types are not optional everywhere.
     options.SchemaFilter<DtoPropertiesRequiredSchemaFilter>();
@@ -89,10 +104,15 @@ app.UseSwaggerUI(options =>
     options.RoutePrefix = string.Empty;
 });
 
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.MapControllers();
 
 // Liveness probe for the compose health check.
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }))
+    .AllowAnonymous()
     .WithName("Health")
     .WithTags("Health");
 

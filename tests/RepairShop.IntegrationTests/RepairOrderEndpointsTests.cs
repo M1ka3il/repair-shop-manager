@@ -25,10 +25,11 @@ public class RepairOrderEndpointsTests
     private HttpClient _client = null!;
 
     [SetUp]
-    public void SetUp()
+    public async Task SetUp()
     {
         IntegrationTestContext.EnsureDockerAvailable();
-        _client = IntegrationTestContext.Factory.CreateClient();
+        // Signed in as the office, which may do everything these tests exercise.
+        _client = await TestAuth.CreateClientAsync();
     }
 
     [TearDown]

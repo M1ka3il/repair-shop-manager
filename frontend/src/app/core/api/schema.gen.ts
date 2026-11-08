@@ -4,6 +4,67 @@
  */
 
 export interface paths {
+  '/api/auth/token': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Exchanges user name and password for a bearer token. */
+    post: {
+      parameters: {
+        query?: never;
+        header?: never;
+        path?: never;
+        cookie?: never;
+      };
+      /** @description Credentials. */
+      requestBody?: {
+        content: {
+          'application/json': components['schemas']['LoginRequest'];
+          'text/json': components['schemas']['LoginRequest'];
+          'application/*+json': components['schemas']['LoginRequest'];
+        };
+      };
+      responses: {
+        /** @description The token, its expiry, user name and role. */
+        200: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['TokenResponseDto'];
+          };
+        };
+        /** @description Wrong user name or password — deliberately not saying which. */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Too many attempts from this address; retry after a minute. */
+        429: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+      };
+    };
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/customers': {
     parameters: {
       query?: never;
@@ -28,6 +89,15 @@ export interface paths {
           };
           content: {
             'application/json': components['schemas']['CustomerDto'][];
+          };
+        };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
           };
         };
       };
@@ -66,6 +136,24 @@ export interface paths {
           };
           content: {
             'application/json': components['schemas']['ValidationProblemDetails'];
+          };
+        };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
           };
         };
       };
@@ -121,6 +209,24 @@ export interface paths {
           };
           content: {
             'application/json': components['schemas']['ValidationProblemDetails'];
+          };
+        };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
           };
         };
         /** @description No customer with that id. */
@@ -181,6 +287,24 @@ export interface paths {
         };
         /** @description Validation failed or the plate is malformed. */
         400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Forbidden */
+        403: {
           headers: {
             [name: string]: unknown;
           };
@@ -261,6 +385,24 @@ export interface paths {
             'application/json': components['schemas']['ProblemDetails'];
           };
         };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
         /** @description No vehicle with that id. */
         404: {
           headers: {
@@ -312,6 +454,15 @@ export interface paths {
           };
           content: {
             'application/json': components['schemas']['VehicleDto'][];
+          };
+        };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
           };
         };
       };
@@ -369,6 +520,15 @@ export interface paths {
             'application/json': components['schemas']['RepairOrderDto'][];
           };
         };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
       };
     };
     put?: never;
@@ -400,6 +560,24 @@ export interface paths {
         };
         /** @description The payload failed validation. */
         400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Forbidden */
+        403: {
           headers: {
             [name: string]: unknown;
           };
@@ -471,6 +649,24 @@ export interface paths {
             'application/json': components['schemas']['ProblemDetails'];
           };
         };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
         /** @description No order with that id. */
         404: {
           headers: {
@@ -505,6 +701,24 @@ export interface paths {
         };
         /** @description The order is completed or invoiced and can no longer be deleted. */
         400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Forbidden */
+        403: {
           headers: {
             [name: string]: unknown;
           };
@@ -586,6 +800,24 @@ export interface paths {
             'application/json': components['schemas']['ProblemDetails'];
           };
         };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Forbidden */
+        403: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
         /** @description No order with that id. */
         404: {
           headers: {
@@ -639,6 +871,15 @@ export interface paths {
         };
         /** @description Validation failed, or the order is completed or invoiced. */
         400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Unauthorized */
+        401: {
           headers: {
             [name: string]: unknown;
           };
@@ -706,6 +947,15 @@ export interface paths {
             'application/json': components['schemas']['ProblemDetails'];
           };
         };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
         /** @description No order with that id. */
         404: {
           headers: {
@@ -758,6 +1008,24 @@ export interface paths {
         };
         /** @description from is after to. */
         400: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Unauthorized */
+        401: {
+          headers: {
+            [name: string]: unknown;
+          };
+          content: {
+            'application/json': components['schemas']['ProblemDetails'];
+          };
+        };
+        /** @description Forbidden */
+        403: {
           headers: {
             [name: string]: unknown;
           };
@@ -863,6 +1131,12 @@ export interface components {
        * @description Sum of labour and parts.
        */
       totalRevenue: number;
+    };
+    /** @description Credentials for `POST /api/auth/token`. */
+    LoginRequest: {
+      /** @example buero */
+      userName: string;
+      password: string;
     };
     ProblemDetails: {
       type?: string | null;
@@ -1001,6 +1275,20 @@ export interface components {
        */
       year?: number;
     };
+    /** @description A bearer token and what the client needs to know about it. */
+    TokenResponseDto: {
+      /** @description JWT to send as `Authorization: Bearer …`. */
+      accessToken: string;
+      /**
+       * Format: date-time
+       * @description When the token stops being accepted.
+       */
+      expiresAtUtc: string;
+      /** @description Login name. */
+      userName: string;
+      /** @description Mechanic or Office. */
+      role: string;
+    };
     /** @description Payload for editing the free-text part of an order. */
     UpdateRepairOrderRequest: {
       /**
@@ -1076,6 +1364,15 @@ export interface operations {
           'application/json': components['schemas']['CustomerDto'];
         };
       };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemDetails'];
+        };
+      };
       /** @description No customer with that id. */
       404: {
         headers: {
@@ -1106,6 +1403,15 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['VehicleDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description No vehicle with that id. */
@@ -1156,6 +1462,15 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['RepairOrderDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ProblemDetails'];
         };
       };
       /** @description No order with that id. */

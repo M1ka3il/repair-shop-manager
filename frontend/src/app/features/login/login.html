@@ -1,0 +1,45 @@
+<form
+  class="panel login"
+  [formGroup]="form"
+  (ngSubmit)="submit()"
+  aria-labelledby="login-h"
+  novalidate
+>
+  <h1 id="login-h">Anmelden</h1>
+  <p class="muted">Werkstatt oder Büro – die Rolle ergibt sich aus dem Login.</p>
+
+  @if (error(); as message) {
+    <p class="alert" role="alert">{{ message }}</p>
+  }
+
+  <label class="field">
+    Benutzername
+    <input
+      class="input"
+      formControlName="userName"
+      autocomplete="username"
+      autocapitalize="none"
+      spellcheck="false"
+      [attr.aria-invalid]="submitted() && form.controls.userName.invalid"
+    />
+    @if (submitted() && form.controls.userName.invalid) {
+      <span class="field-error">Pflichtfeld.</span>
+    }
+  </label>
+  <label class="field">
+    Passwort
+    <input
+      class="input"
+      type="password"
+      formControlName="password"
+      autocomplete="current-password"
+      [attr.aria-invalid]="submitted() && form.controls.password.invalid"
+    />
+    @if (submitted() && form.controls.password.invalid) {
+      <span class="field-error">Pflichtfeld.</span>
+    }
+  </label>
+  <button type="submit" class="btn btn-primary" [disabled]="pending()">
+    {{ pending() ? 'Anmelden …' : 'Anmelden' }}
+  </button>
+</form>

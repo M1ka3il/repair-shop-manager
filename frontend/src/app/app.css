@@ -95,3 +95,31 @@ nav a.active {
     padding-right: 16px;
   }
 }
+
+.user {
+  color: var(--topbar-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+.role {
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--topbar-active);
+  color: var(--topbar-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.logout {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--topbar-muted);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.logout:hover {
+  color: var(--topbar-ink);
+}

@@ -21,3 +21,6 @@ export type SaveCustomerRequest = Schemas['SaveCustomerRequest'];
 export type SaveVehicleRequest = Schemas['SaveVehicleRequest'];
 
 export type CustomerRevenue = Schemas['CustomerRevenueDto'];
+
+export type LoginRequest = Schemas['LoginRequest'];
+export type TokenResponse = Schemas['TokenResponseDto'];

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using RepairShop.Application.Abstractions;
+using RepairShop.Application.Auth;
 using RepairShop.Application.Common;
 using RepairShop.Application.RepairOrders;
 using RepairShop.Domain.Common;
@@ -23,6 +24,7 @@ public class RepairOrderServiceTests
     private Mock<IVehicleRepository> _vehicles = null!;
     private Mock<IUnitOfWork> _unitOfWork = null!;
     private RepairOrderService _service = null!;
+    private Mock<IClock> _clock = null!;
 
     [SetUp]
     public void SetUp()
@@ -31,15 +33,11 @@ public class RepairOrderServiceTests
         _vehicles = new Mock<IVehicleRepository>(MockBehavior.Strict);
         _unitOfWork = new Mock<IUnitOfWork>();
 
-        var clock = new Mock<IClock>();
-        clock.SetupGet(c => c.UtcNow).Returns(Now);
+        _clock = new Mock<IClock>();
+        _clock.SetupGet(c => c.UtcNow).Returns(Now);
 
-        _service = new RepairOrderService(
-            _orders.Object,
-            _vehicles.Object,
-            _unitOfWork.Object,
-            clock.Object,
-            NullLogger<RepairOrderService>.Instance);
+        // The office may do everything, so the existing tests are unaffected by roles.
+        _service = ServiceFor(new FakeCurrentUser(Roles.Office));
     }
 
     [Test]
@@ -192,6 +190,64 @@ public class RepairOrderServiceTests
         _orders.Verify(r => r.Remove(It.IsAny<RepairOrder>()), Times.Never);
         _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    /// <summary>
+    /// A mechanic asking to invoice is refused before anything is loaded or
+    /// saved — 403, whatever the order's state.
+    /// </summary>
+    [Test]
+    public void ChangeStatusAsync_MechanicInvoicing_IsForbiddenAndDoesNotSave()
+    {
+        var service = ServiceFor(new FakeCurrentUser(Roles.Mechanic));
+
+        Assert.ThrowsAsync<ForbiddenException>(() => service.ChangeStatusAsync(1, new ChangeStatusRequest
+        {
+            TargetStatus = RepairOrderStatus.Invoiced
+        }));
+
+        // Strict mock without a GetByIdAsync setup: loading would have failed the test.
+        _unitOfWork.Verify(u => u.SaveChangesAsync(It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Test]
+    public async Task ChangeStatusAsync_MechanicFinishingWork_IsAllowed()
+    {
+        var order = OrderInStatus(RepairOrderStatus.InProgress);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(order);
+        var service = ServiceFor(new FakeCurrentUser(Roles.Mechanic));
+
+        var result = await service.ChangeStatusAsync(1, new ChangeStatusRequest { TargetStatus = RepairOrderStatus.Completed });
+
+        Assert.That(result.Status, Is.EqualTo(RepairOrderStatus.Completed));
+    }
+
+    /// <summary>
+    /// The UI offers what <c>AllowedTransitions</c> lists, so it must already be
+    /// filtered by role: a completed order offers "invoice" to the office only.
+    /// </summary>
+    [Test]
+    public async Task AllowedTransitions_AreFilteredByTheCallersRole()
+    {
+        var order = OrderInStatus(RepairOrderStatus.Completed);
+        _orders.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(order);
+
+        var forOffice = await ServiceFor(new FakeCurrentUser(Roles.Office)).GetAsync(1);
+        var forMechanic = await ServiceFor(new FakeCurrentUser(Roles.Mechanic)).GetAsync(1);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(forOffice.AllowedTransitions, Is.EqualTo(new[] { RepairOrderStatus.Invoiced }));
+            Assert.That(forMechanic.AllowedTransitions, Is.Empty);
+        });
+    }
+
+    private RepairOrderService ServiceFor(ICurrentUser user) => new(
+        _orders.Object,
+        _vehicles.Object,
+        _unitOfWork.Object,
+        _clock.Object,
+        user,
+        NullLogger<RepairOrderService>.Instance);
 
     private static Vehicle Vehicle() =>
         new(customerId: 1, LicensePlate.Create("M-AB 1234"), "Opel", "Corsa F", 2021);

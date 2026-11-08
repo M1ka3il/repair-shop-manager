@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\RepairShop.Application\RepairShop.Application.csproj" />
@@ -18,5 +18,12 @@
       Remove once SqlClient references a fixed version itself.
     -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <!-- Password hashing (PBKDF2) without pulling in all of ASP.NET Core Identity. -->
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.14" />
+    <!-- Same IdentityModel line as Microsoft.AspNetCore.Authentication.JwtBearer 10.0.14,
+         so issuing (here) and validating (API) use one implementation. -->
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.19.2" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.14" />
+    <PackageReference Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.14" />
   </ItemGroup>
 </Project>

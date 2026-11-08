@@ -91,7 +91,7 @@
           @if (description.invalid && description.touched) {
             <p class="field-error" id="description-error">3 bis 1000 Zeichen.</p>
           }
-          @if (!invoiced()) {
+          @if (!invoiced() && auth.isOffice()) {
             <button
               type="submit"
               class="btn btn-secondary"
@@ -248,7 +248,7 @@
         </p>
       </section>
 
-      @if (!finished()) {
+      @if (!finished() && auth.isOffice()) {
         @if (confirmingDelete()) {
           <div class="panel confirm" role="group" aria-label="Löschen bestätigen">
             <p>Auftrag #{{ o.id }} mit allen Positionen löschen?</p>

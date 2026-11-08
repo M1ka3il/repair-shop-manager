@@ -9,7 +9,9 @@ namespace RepairShop.Application.RepairOrders;
 /// </summary>
 internal static class RepairOrderMapping
 {
-    public static RepairOrderDto ToDto(this RepairOrder order) => new(
+    /// <param name="order">The aggregate.</param>
+    /// <param name="mayMoveTo">Filters the domain's allowed targets down to what the caller may do.</param>
+    public static RepairOrderDto ToDto(this RepairOrder order, Func<RepairOrderStatus, bool> mayMoveTo) => new(
         order.Id,
         order.VehicleId,
         order.Vehicle?.LicensePlate.Value,
@@ -21,7 +23,7 @@ internal static class RepairOrderMapping
         order.Description,
         order.TotalPrice,
         [.. order.Items.Select(ToDto)],
-        order.AllowedTargets);
+        [.. order.AllowedTargets.Where(mayMoveTo)]);
 
     public static RepairItemDto ToDto(this RepairItem item) => new(
         item.Id,

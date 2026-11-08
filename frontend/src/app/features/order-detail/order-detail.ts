@@ -22,6 +22,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 import { type Observable, finalize } from 'rxjs';
 import { CustomersApi } from '../../core/api/customers.api';
+import { AuthService } from '../../core/auth/auth.service';
 import type { RepairItemType, RepairOrder, RepairOrderStatus } from '../../core/api/models';
 import { RepairOrdersApi } from '../../core/api/repair-orders.api';
 import { toApiError } from '../../core/http/api-error';
@@ -51,6 +52,8 @@ export class OrderDetail {
   private readonly api = inject(RepairOrdersApi);
   private readonly customersApi = inject(CustomersApi);
   private readonly router = inject(Router);
+  /** Shapes the UI only; the API refuses office actions for mechanics anyway (403). */
+  protected readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly order = rxResource({
@@ -152,7 +155,8 @@ export class OrderDetail {
         if (!this.description.dirty) {
           this.description.setValue(order.description);
         }
-        setEnabled(this.description, order.status !== 'Invoiced');
+        // Editing the description and deleting are office actions (PUT/DELETE).
+        setEnabled(this.description, order.status !== 'Invoiced' && this.auth.isOffice());
         setEnabled(this.itemForm, !isWorkFinished(order.status));
       });
     });

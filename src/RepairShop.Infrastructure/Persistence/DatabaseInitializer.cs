@@ -1,5 +1,9 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using RepairShop.Application.Auth;
+using RepairShop.Infrastructure.Identity;
 using RepairShop.Domain.Entities;
 using RepairShop.Domain.ValueObjects;
 
@@ -14,12 +18,20 @@ namespace RepairShop.Infrastructure.Persistence;
 /// step so that two instances cannot race on the same schema change.
 /// </para>
 /// </summary>
-public class DatabaseInitializer(RepairShopDbContext db, ILogger<DatabaseInitializer> logger)
+public class DatabaseInitializer(
+    RepairShopDbContext db,
+    IPasswordHasher<UserAccount> hasher,
+    IOptions<DemoUserOptions> demoUsers,
+    ILogger<DatabaseInitializer> logger)
 {
     public async Task InitialiseAsync(CancellationToken cancellationToken = default)
     {
         logger.LogInformation("Applying database migrations");
         await db.Database.MigrateAsync(cancellationToken);
+
+        // Independent of the demo data below: a database seeded before logins
+        // existed must still get its users after the upgrade.
+        await SeedUsersAsync(cancellationToken);
 
         if (await db.Customers.AnyAsync(cancellationToken))
         {
@@ -29,6 +41,37 @@ public class DatabaseInitializer(RepairShopDbContext db, ILogger<DatabaseInitial
 
         logger.LogInformation("Seeding demo data");
         await SeedAsync(cancellationToken);
+    }
+
+    private async Task SeedUsersAsync(CancellationToken cancellationToken)
+    {
+        if (await db.UserAccounts.AnyAsync(cancellationToken))
+        {
+            return;
+        }
+
+        var passwords = demoUsers.Value;
+        if (string.IsNullOrWhiteSpace(passwords.MechanicPassword) || string.IsNullOrWhiteSpace(passwords.OfficePassword))
+        {
+            logger.LogWarning(
+                "No user accounts and no demo passwords configured — nobody can log in. " +
+                "Set DEMO_MECHANIC_PASSWORD and DEMO_OFFICE_PASSWORD in .env (docker compose) " +
+                "or DemoUsers:MechanicPassword / DemoUsers:OfficePassword in user secrets.");
+            return;
+        }
+
+        db.UserAccounts.AddRange(
+            CreateUser("werkstatt", Roles.Mechanic, passwords.MechanicPassword),
+            CreateUser("buero", Roles.Office, passwords.OfficePassword));
+        await db.SaveChangesAsync(cancellationToken);
+        logger.LogInformation("Seeded demo logins 'werkstatt' (Mechanic) and 'buero' (Office)");
+    }
+
+    private UserAccount CreateUser(string userName, string role, string password)
+    {
+        var user = new UserAccount(userName, role);
+        user.SetPasswordHash(hasher.HashPassword(user, password));
+        return user;
     }
 
     private async Task SeedAsync(CancellationToken cancellationToken)

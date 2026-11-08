@@ -7,6 +7,7 @@ import { type ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import type { RepairOrder } from '../../core/api/models';
 import { apiErrorInterceptor } from '../../core/http/api-error.interceptor';
+import { signInForTest, signOutForTest } from '../../../testing/auth';
 import { OrderDetail } from './order-detail';
 
 const order = (overrides: Partial<RepairOrder> = {}): RepairOrder => ({
@@ -48,6 +49,8 @@ describe('OrderDetail', () => {
   let el: HTMLElement;
 
   beforeEach(() => {
+    // Most tests act as the office, which may edit and delete; see the mechanic test below.
+    signInForTest('Office');
     registerLocaleData(localeDe);
     TestBed.configureTestingModule({
       imports: [OrderDetail],
@@ -65,7 +68,10 @@ describe('OrderDetail', () => {
     TestBed.tick();
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    signOutForTest();
+  });
 
   /**
    * Lets dependent resources start their requests: a resource subscribes to its
@@ -272,6 +278,33 @@ describe('OrderDetail', () => {
     expect(el.querySelector('.facts')?.textContent).toContain(
       `Abgerechnet ${pad(expected.getDate())}.${pad(expected.getMonth() + 1)}.${expected.getFullYear()}, ${pad(expected.getHours())}:${pad(expected.getMinutes())}`,
     );
+  });
+
+  it('lets a mechanic book lines and move the order, but not edit the description or delete', async () => {
+    // AuthService is a root singleton already created as office: switch the session.
+    signInForTest('Mechanic');
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [OrderDetail],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(withInterceptors([apiErrorInterceptor])),
+        provideHttpClientTesting(),
+        { provide: LOCALE_ID, useValue: 'de-DE' },
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    fixture = TestBed.createComponent(OrderDetail);
+    fixture.componentRef.setInput('id', '7');
+    el = fixture.nativeElement as HTMLElement;
+    TestBed.tick();
+    await load();
+
+    expect((el.querySelector('#description') as HTMLTextAreaElement).disabled).toBe(true);
+    expect(button('Beschreibung speichern')).toBeUndefined();
+    expect(button('Auftrag löschen')).toBeUndefined();
+    expect(el.querySelector('.item-form')).not.toBeNull();
+    expect(buttons('.head-actions button')).toEqual(['Wartet auf Teil', 'Fertig melden']);
   });
 
   it('shows a not-found page for an unknown order', async () => {

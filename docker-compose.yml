@@ -51,6 +51,11 @@ services:
       # is acceptable here because the traffic never leaves that network; a real
       # deployment would use a proper certificate.
       - ConnectionStrings__RepairShopDb=Server=db,1433;Database=RepairShop;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=True;Encrypt=True
+      # Secrets for sign-in, from .env. No defaults: compose fails loudly if
+      # they are missing rather than starting with a guessable key.
+      - Jwt__SigningKey=${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env}
+      - DemoUsers__MechanicPassword=${DEMO_MECHANIC_PASSWORD:?set DEMO_MECHANIC_PASSWORD in .env}
+      - DemoUsers__OfficePassword=${DEMO_OFFICE_PASSWORD:?set DEMO_OFFICE_PASSWORD in .env}
     ports:
       - "8080:8080"
     restart: on-failure

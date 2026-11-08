@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using RepairShop.Application.Auth;
 
 namespace RepairShop.IntegrationTests;
@@ -11,9 +12,12 @@ namespace RepairShop.IntegrationTests;
 /// </summary>
 public static class TestAuth
 {
-    public const string SigningKey = "integration-tests-signing-key-0123456789abcdef";
-    public const string MechanicPassword = "werkstatt-test-pw";
-    public const string OfficePassword = "buero-test-pw";
+    // Generated per test run instead of written into the code: they only ever
+    // protect the throwaway Testcontainers database, but a literal password in
+    // the repository is a bad pattern and trips secret scanners (GitGuardian).
+    public static readonly string SigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
+    public static readonly string MechanicPassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(18));
+    public static readonly string OfficePassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(18));
 
     private static readonly ConcurrentDictionary<string, string> Tokens = new();
 

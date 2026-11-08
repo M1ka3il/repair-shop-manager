@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RepairShop.Application.Auth;
 using RepairShop.Application.RepairOrders;
 using RepairShop.Domain.Entities;
 
@@ -10,6 +12,7 @@ namespace RepairShop.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/repair-orders")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
 [Produces("application/json")]
 public class RepairOrdersController(IRepairOrderService service) : ControllerBase
 {
@@ -41,7 +44,9 @@ public class RepairOrdersController(IRepairOrderService service) : ControllerBas
     /// <response code="201">Created; the Location header points at the new order.</response>
     /// <response code="400">The payload failed validation.</response>
     /// <response code="404">The referenced vehicle does not exist.</response>
+    [Authorize(Roles = Roles.Office)]
     [HttpPost]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(RepairOrderDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -60,7 +65,9 @@ public class RepairOrdersController(IRepairOrderService service) : ControllerBas
     /// <response code="200">The updated order.</response>
     /// <response code="400">Validation failed, or the order is already invoiced.</response>
     /// <response code="404">No order with that id.</response>
+    [Authorize(Roles = Roles.Office)]
     [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(RepairOrderDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -76,7 +83,9 @@ public class RepairOrdersController(IRepairOrderService service) : ControllerBas
     /// <response code="204">Deleted.</response>
     /// <response code="400">The order is completed or invoiced and can no longer be deleted.</response>
     /// <response code="404">No order with that id.</response>
+    [Authorize(Roles = Roles.Office)]
     [HttpDelete("{id:int}")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -102,6 +111,7 @@ public class RepairOrdersController(IRepairOrderService service) : ControllerBas
     /// <response code="400">The transition is not allowed from the current status.</response>
     /// <response code="404">No order with that id.</response>
     [HttpPatch("{id:int}/status")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(RepairOrderDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RepairShop.Application.Abstractions;
 using RepairShop.Domain.Entities;
+using RepairShop.Infrastructure.Identity;
 
 namespace RepairShop.Infrastructure.Persistence;
 
@@ -18,6 +19,8 @@ public class RepairShopDbContext(DbContextOptions<RepairShopDbContext> options)
     public DbSet<RepairOrder> RepairOrders => Set<RepairOrder>();
 
     public DbSet<RepairItem> RepairItems => Set<RepairItem>();
+
+    public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

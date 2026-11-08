@@ -43,6 +43,7 @@ Clone it, run `docker compose up`, open <http://localhost:4200> for the UI or
 - [Architecture](#architecture)
 - [Domain model](#domain-model)
 - [The status flow](#the-status-flow)
+- [Authentication and roles](#authentication-and-roles)
 - [API](#api)
 - [Design decisions](#design-decisions)
 - [What was deliberately left out](#what-was-deliberately-left-out)
@@ -60,18 +61,20 @@ Requirements: Docker (with Compose). No .NET SDK, no SQL Server installation.
 git clone https://github.com/M1ka3il/repair-shop-manager.git
 cd repair-shop-manager
 
-cp .env.example .env      # then edit .env and set your own password
+cp .env.example .env      # then edit .env: DB password, JWT signing key, two demo passwords
 docker compose up --build
 ```
 
-Then open <http://localhost:4200> for the Angular UI, or <http://localhost:8080>
-for Swagger UI. The database
+Then open <http://localhost:4200> and sign in as **`werkstatt`** (workshop) or
+**`buero`** (office) with the passwords you put in `.env` — or use Swagger UI on
+<http://localhost:8080> ("Authorize" with a token from `POST /api/auth/token`). The database
 schema is created by EF Core migrations on startup and seeded with a handful of
 customers, vehicles and orders in different statuses, so the first request already
 returns something meaningful.
 
-> **On the password:** it lives in `.env`, which is gitignored. `.env.example` shows
-> the shape without the value. A committed database password in an application repo
+> **On the secrets:** the database password, the JWT signing key and the demo
+> passwords live in `.env`, which is gitignored. `.env.example` shows the shape
+> without the values, and `docker compose` refuses to start if one is missing. A committed database password in an application repo
 > undermines exactly the credibility the repo is meant to demonstrate.
 
 Health check: `GET /health`.
@@ -227,32 +230,79 @@ description is frozen.
 
 ---
 
+## Authentication and roles
+
+Two logins, two roles. The API issues its own JWTs (`POST /api/auth/token`); every
+other endpoint needs one.
+
+| Action | Werkstatt (`Mechanic`) | Büro (`Office`) |
+|---|:-:|:-:|
+| Read orders, customers, vehicles | ✅ | ✅ |
+| Book and remove line items | ✅ | ✅ |
+| Start work · waiting for parts · finish work | ✅ | ✅ |
+| **Invoice** | – | ✅ |
+| Create orders, edit description, delete | – | ✅ |
+| Create and correct customers and vehicles | – | ✅ |
+| Revenue report | – | ✅ |
+
+How it is enforced:
+
+- **Closed by default.** A fallback authorization policy requires a signed-in user
+  everywhere; only `/health`, Swagger and the token endpoint are `[AllowAnonymous]`.
+  A new controller can never be public by accident.
+- **Coarse rules on the endpoint** (`[Authorize(Roles = Office)]`), **fine rules in
+  the use case**: who may make which status change depends on the target status in
+  the request body, so `StatusChangePolicy` sits next to the domain's transition
+  table in the Application layer — the domain says whether a move is *possible*,
+  the policy whether *this person* may make it. A violation is a `ForbiddenException`
+  → **403**, distinct from a broken business rule (400).
+- **`allowedTransitions` is filtered by role**, so the UI never offers a button that
+  would come back as 403 — and the API still refuses it if someone calls it directly.
+- **401 and 403 are problem details**, like every other error.
+- **Login hardening:** passwords hashed with PBKDF2 (ASP.NET Core Identity's
+  hasher, without the rest of Identity); an unknown user takes as long as a wrong
+  password and gets the same answer; 10 attempts per minute and client (**429**).
+- **Secrets from configuration only.** The signing key is validated at startup
+  (≥ 32 bytes) — a missing key stops the app instead of failing at the first login.
+- **In the browser** the token lives in `sessionStorage`: closing the browser signs
+  out, which suits shared workshop PCs. The UI hides what a role may not do, but the
+  API is the actual gate.
+
+Demo users are created on first start from `DEMO_MECHANIC_PASSWORD` and
+`DEMO_OFFICE_PASSWORD` — also for an existing database that predates the logins.
+
+---
+
 ## API
 
 Swagger UI at <http://localhost:8080>, OpenAPI document at `/swagger/v1/swagger.json`.
 
+All routes except `/health` and `POST /api/auth/token` need `Authorization: Bearer <token>`;
+office-only routes are marked **🔒 Office**.
+
 | Method | Route | Purpose |
 |---|---|---|
+| `POST` | `/api/auth/token` | Sign in → token, expiry, user name, role; **401** on wrong credentials, **429** when throttled |
 | `GET` | `/api/repair-orders?status=` | List orders, newest first, optional status filter |
 | `GET` | `/api/repair-orders/{id}` | One order including its line items |
-| `POST` | `/api/repair-orders` | Create an order (**201** + `Location` header) |
-| `PUT` | `/api/repair-orders/{id}` | Edit the description |
-| `DELETE` | `/api/repair-orders/{id}` | Delete an open order (**204**); **400** once completed or invoiced |
-| `PATCH` | `/api/repair-orders/{id}/status` | **Change status** — the dedicated lifecycle endpoint |
+| `POST` | `/api/repair-orders` | Create an order (**201** + `Location` header) · 🔒 Office |
+| `PUT` | `/api/repair-orders/{id}` | Edit the description · 🔒 Office |
+| `DELETE` | `/api/repair-orders/{id}` | Delete an open order (**204**); **400** once completed or invoiced · 🔒 Office |
+| `PATCH` | `/api/repair-orders/{id}/status` | **Change status** — the dedicated lifecycle endpoint; **403** if the role may not make that move |
 | `POST` | `/api/repair-orders/{id}/items` | Book labour or a part |
 | `DELETE` | `/api/repair-orders/{id}/items/{itemId}` | Remove a line item |
 | `GET` | `/api/customers`, `/api/customers/{id}` | Customers incl. their vehicles |
-| `POST` | `/api/customers` | Create a customer (**201**) |
-| `PUT` | `/api/customers/{id}` | Correct name and contact details |
-| `POST` | `/api/customers/{id}/vehicles` | Register a vehicle (**201**); **409** if the plate is taken |
+| `POST` | `/api/customers` | Create a customer (**201**) · 🔒 Office |
+| `PUT` | `/api/customers/{id}` | Correct name and contact details · 🔒 Office |
+| `POST` | `/api/customers/{id}/vehicles` | Register a vehicle (**201**); **409** if the plate is taken · 🔒 Office |
 | `GET` | `/api/vehicles`, `/api/vehicles/{id}` | Vehicles — useful for picking a `vehicleId` |
-| `PUT` | `/api/vehicles/{id}` | Correct plate, make, model, year (owner is fixed); **409** on a taken plate |
-| `GET` | `/api/reports/revenue-by-customer?from=&to=` | Revenue report by invoice date (stored procedure) |
+| `PUT` | `/api/vehicles/{id}` | Correct plate, make, model, year (owner is fixed); **409** on a taken plate · 🔒 Office |
+| `GET` | `/api/reports/revenue-by-customer?from=&to=` | Revenue report by invoice date (stored procedure) · 🔒 Office |
 | `GET` | `/health` | Liveness probe |
 
 Status codes are used deliberately: **201** on create with a `Location` header, **204**
-on delete, **400** on a rejected business rule or failed validation, **404** for a
-missing resource, **409** when the request collides with existing data (a license
+on delete, **400** on a rejected business rule or failed validation, **401** without a
+valid token, **403** when the role may not do this, **404** for a missing resource, **409** when the request collides with existing data (a license
 plate that is already registered), **500** only for genuine defects.
 
 ![Swagger UI of the Repair Shop API](docs/swagger.png)
@@ -260,23 +310,29 @@ plate that is already registered), **500** only for genuine defects.
 ### Example: walking an order through its lifecycle
 
 ```bash
+# Sign in as the office (password from your .env)
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"userName": "buero", "password": "<DEMO_OFFICE_PASSWORD>"}' | jq -r .accessToken)
+AUTH="Authorization: Bearer $TOKEN"
+
 # Create
-curl -X POST http://localhost:8080/api/repair-orders \
+curl -X POST http://localhost:8080/api/repair-orders -H "$AUTH" \
   -H "Content-Type: application/json" \
   -d '{"vehicleId": 1, "description": "Kupplung rutscht bei Volllast"}'
 
 # Book labour
-curl -X POST http://localhost:8080/api/repair-orders/7/items \
+curl -X POST http://localhost:8080/api/repair-orders/7/items -H "$AUTH" \
   -H "Content-Type: application/json" \
   -d '{"type": "Labour", "designation": "Kupplung wechseln", "unitPrice": 89.00, "quantity": 6}'
 
 # Start work
-curl -X PATCH http://localhost:8080/api/repair-orders/7/status \
+curl -X PATCH http://localhost:8080/api/repair-orders/7/status -H "$AUTH" \
   -H "Content-Type: application/json" \
   -d '{"targetStatus": "InProgress"}'
 
 # Illegal jump — answered with 400, not 500
-curl -X PATCH http://localhost:8080/api/repair-orders/7/status \
+curl -X PATCH http://localhost:8080/api/repair-orders/7/status -H "$AUTH" \
   -H "Content-Type: application/json" \
   -d '{"targetStatus": "Invoiced"}'
 ```
@@ -360,7 +416,7 @@ Scope control is a design decision, so the omissions are listed rather than hidd
 | Employee management, scheduling | Adds tables and CRUD, adds no new domain logic |
 | Inventory / stock | A domain in its own right; would dwarf the repair order |
 | Invoice generation (PDF, tax) | Tax law is a rabbit hole; `Invoiced` as a status is the interesting part |
-| Authentication (JWT) | Would be the right next step for production, but adds no domain depth |
+| User management, password change, refresh tokens | Two demo logins show the role split; managing accounts is CRUD. Tokens last one shift (8 h) instead of being refreshed |
 | Deleting customers and vehicles | Master data can be created and corrected, but not deleted: a vehicle with repair history must not vanish, for the same reason an invoiced order cannot be deleted. Changing a vehicle's owner is left out for the same reason |
 | Pagination, sorting, filtering beyond status | Straightforward to add, nothing to demonstrate |
 
@@ -406,6 +462,9 @@ docker compose up db -d
 cd src/RepairShop.Api
 dotnet user-secrets set "ConnectionStrings:RepairShopDb" \
   "Server=localhost,1433;Database=RepairShop;User Id=sa;Password=<your .env password>;TrustServerCertificate=True"
+dotnet user-secrets set "Jwt:SigningKey" "$(openssl rand -base64 48)"
+dotnet user-secrets set "DemoUsers:MechanicPassword" "<choose one>"
+dotnet user-secrets set "DemoUsers:OfficePassword" "<choose one>"
 dotnet run
 ```
 
@@ -446,7 +505,8 @@ database just to read the model.
 Listed as a roadmap, not as gaps:
 
 - A decoupled `BackgroundService` with a queue (e.g. asynchronous invoice dispatch)
-- JWT authentication and role-based authorisation
+- Session in an HttpOnly cookie instead of `sessionStorage` (keeps the token away from scripts; needs CSRF protection)
+- User management in the UI (create logins, change passwords)
 
 ---
 

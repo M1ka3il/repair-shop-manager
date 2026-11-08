@@ -1,0 +1,23 @@
+:host {
+  display: flex;
+  justify-content: center;
+  padding-top: 48px;
+}
+.login {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 28px;
+}
+.login h1 {
+  margin: 0;
+  font-size: 24px;
+}
+.login .btn {
+  margin-top: 6px;
+}
+.alert {
+  margin: 0;
+}

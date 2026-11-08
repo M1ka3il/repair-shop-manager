@@ -32,6 +32,13 @@ public class RepairShopApiFactory : WebApplicationFactory<Program>, IAsyncDispos
     {
         builder.UseSetting("ConnectionStrings:RepairShopDb", _database.GetConnectionString());
 
+        // Test-only secrets: a signing key and the two demo passwords.
+        builder.UseSetting("Jwt:SigningKey", TestAuth.SigningKey);
+        builder.UseSetting("DemoUsers:MechanicPassword", TestAuth.MechanicPassword);
+        builder.UseSetting("DemoUsers:OfficePassword", TestAuth.OfficePassword);
+        // The suite signs in a handful of times; the throttle has its own test.
+        builder.UseSetting("Auth:LoginAttemptsPerMinute", "1000");
+
         // The API's own startup migration runs; the seed gives the tests a known
         // fixture without duplicating it here.
         builder.UseSetting("Database:AutoMigrate", "true");

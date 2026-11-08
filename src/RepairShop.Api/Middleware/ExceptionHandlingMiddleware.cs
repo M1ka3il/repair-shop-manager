@@ -33,6 +33,11 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             logger.LogInformation("Resource not found: {Message}", ex.Message);
             await WriteProblemAsync(context, StatusCodes.Status404NotFound, "Resource not found", ex.Message);
         }
+        catch (ForbiddenException ex)
+        {
+            logger.LogInformation("Forbidden: {Message}", ex.Message);
+            await WriteProblemAsync(context, StatusCodes.Status403Forbidden, "Forbidden", ex.Message);
+        }
         catch (ConflictException ex)
         {
             logger.LogInformation("Conflict: {Message}", ex.Message);

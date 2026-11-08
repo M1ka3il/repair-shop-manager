@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RepairShop.Application.Auth;
 using RepairShop.Application.Customers;
 
 namespace RepairShop.Api.Controllers;
@@ -9,6 +11,7 @@ namespace RepairShop.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("api")]
+[ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
 [Produces("application/json")]
 public class CustomersController(ICustomerService service) : ControllerBase
 {
@@ -36,7 +39,9 @@ public class CustomersController(ICustomerService service) : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <response code="201">The new customer, with a Location header.</response>
     /// <response code="400">Validation failed.</response>
+    [Authorize(Roles = Roles.Office)]
     [HttpPost("customers")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(CustomerDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<CustomerDto>> CreateCustomer(
@@ -54,7 +59,9 @@ public class CustomersController(ICustomerService service) : ControllerBase
     /// <response code="200">The updated customer.</response>
     /// <response code="400">Validation failed.</response>
     /// <response code="404">No customer with that id.</response>
+    [Authorize(Roles = Roles.Office)]
     [HttpPut("customers/{id:int}")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(CustomerDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -72,7 +79,9 @@ public class CustomersController(ICustomerService service) : ControllerBase
     /// <response code="400">Validation failed or the plate is malformed.</response>
     /// <response code="404">No customer with that id.</response>
     /// <response code="409">The plate is already registered.</response>
+    [Authorize(Roles = Roles.Office)]
     [HttpPost("customers/{id:int}/vehicles")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(VehicleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
@@ -105,7 +114,9 @@ public class CustomersController(ICustomerService service) : ControllerBase
     /// <response code="400">Validation failed or the plate is malformed.</response>
     /// <response code="404">No vehicle with that id.</response>
     /// <response code="409">The new plate belongs to another vehicle.</response>
+    [Authorize(Roles = Roles.Office)]
     [HttpPut("vehicles/{id:int}")]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(VehicleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

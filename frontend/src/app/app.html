@@ -20,7 +20,7 @@
       <span>Werkstatt</span>
     </a>
     <nav aria-label="Hauptnavigation">
-      @for (item of nav; track item.path) {
+      @for (item of nav(); track item.path) {
         <a [routerLink]="item.path" routerLinkActive="active" ariaCurrentWhenActive="page">{{
           item.label
         }}</a>
@@ -85,7 +85,18 @@
       }
       <span>{{ theme.label() }}</span>
     </button>
-    <a class="btn btn-primary new-order" routerLink="/orders/new">Neuer Auftrag</a>
+    @if (auth.isAuthenticated()) {
+      <span
+        class="user"
+        [attr.aria-label]="'Angemeldet als ' + auth.userName() + ', ' + roleLabel()"
+      >
+        {{ auth.userName() }} <span class="role">{{ roleLabel() }}</span>
+      </span>
+      <button type="button" class="logout" (click)="logout()">Abmelden</button>
+    }
+    @if (auth.isOffice()) {
+      <a class="btn btn-primary new-order" routerLink="/orders/new">Neuer Auftrag</a>
+    }
   </div>
 </header>
 <main id="main" class="page">

@@ -1,0 +1,220 @@
+<a routerLink="/board" class="back">← Abbrechen</a>
+<h1 class="title">Neuer Auftrag</h1>
+
+@if (loadError(); as e) {
+  <div class="alert" role="alert">
+    <div>
+      <strong>{{ e.title }}</strong>
+      <span>{{ e.detail }}</span>
+    </div>
+    <button type="button" class="btn btn-secondary" (click)="data.reload()">
+      Erneut versuchen
+    </button>
+  </div>
+}
+
+<app-notice [notice]="notice()" />
+
+<section class="panel step" aria-labelledby="step1">
+  <h2 id="step1">1 · Fahrzeug</h2>
+
+  @if (!newVehicleOpen()) {
+    <label class="field" for="search">Kennzeichen, Kunde oder Modell</label>
+    <input
+      id="search"
+      class="input search"
+      type="search"
+      autocomplete="off"
+      placeholder="z. B. MSD4711 oder Becker"
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+    />
+
+    <fieldset class="results" [attr.aria-busy]="data.isLoading()">
+      <legend class="sr-only">Fahrzeug wählen</legend>
+      @for (option of visibleMatches(); track option.vehicle.id) {
+        <label class="result" [class.result-selected]="option.vehicle.id === selectedId()">
+          <input
+            type="radio"
+            name="vehicle"
+            [value]="option.vehicle.id"
+            [checked]="option.vehicle.id === selectedId()"
+            (change)="select(option.vehicle.id)"
+          />
+          <span class="plate">{{ option.vehicle.licensePlate }}</span>
+          <span class="car"
+            >{{ option.vehicle.make }} {{ option.vehicle.model }} · {{ option.vehicle.year }}</span
+          >
+          <span class="owner">{{ option.customerName }}</span>
+        </label>
+      } @empty {
+        @if (!data.isLoading()) {
+          <p class="muted">Kein Fahrzeug gefunden.</p>
+        }
+      }
+      @if (hiddenMatches() > 0) {
+        <p class="muted">{{ hiddenMatches() }} weitere Treffer – Suche verfeinern.</p>
+      }
+    </fieldset>
+
+    @if (orderSubmitted() && selectedId() === null) {
+      <p class="field-error" role="alert">Bitte ein Fahrzeug wählen oder neu anlegen.</p>
+    }
+
+    <button type="button" class="btn btn-dashed" (click)="openNewVehicle()">
+      + Neues Fahrzeug / neuer Kunde
+    </button>
+  } @else {
+    <form
+      class="new-vehicle"
+      [formGroup]="vehicleForm"
+      (ngSubmit)="registerVehicle()"
+      aria-label="Neues Fahrzeug anlegen"
+      novalidate
+    >
+      <div class="grid">
+        <label class="field">
+          Kunde
+          <select class="input" formControlName="customer">
+            <option value="new">Neuer Kunde …</option>
+            @for (customer of customers(); track customer.id) {
+              <option [ngValue]="customer.id">{{ customer.name }}</option>
+            }
+          </select>
+        </label>
+        @if (vehicleForm.controls.customer.value === 'new') {
+          <label class="field">
+            Name
+            <input
+              class="input"
+              formControlName="name"
+              placeholder="Vor- und Nachname / Firma"
+              [attr.aria-invalid]="!!errorFor(vehicleForm.controls.name, vehicleSubmitted())"
+            />
+            @if (errorFor(vehicleForm.controls.name, vehicleSubmitted()); as msg) {
+              <span class="field-error">{{ msg }}</span>
+            }
+          </label>
+          <label class="field">
+            <span>E-Mail <span class="optional">(optional)</span></span>
+            <input
+              class="input"
+              type="email"
+              formControlName="email"
+              [attr.aria-invalid]="!!errorFor(vehicleForm.controls.email, vehicleSubmitted())"
+            />
+            @if (errorFor(vehicleForm.controls.email, vehicleSubmitted()); as msg) {
+              <span class="field-error">{{ msg }}</span>
+            }
+          </label>
+          <label class="field">
+            <span>Telefon <span class="optional">(optional)</span></span>
+            <input class="input" type="tel" formControlName="phone" />
+          </label>
+        }
+      </div>
+
+      <div class="grid">
+        <label class="field">
+          Kennzeichen
+          <input
+            class="input plate-input"
+            formControlName="licensePlate"
+            placeholder="M-AB 1234"
+            autocomplete="off"
+            (input)="onPlateInput()"
+            [attr.aria-invalid]="
+              !!plateConflict() || !!errorFor(vehicleForm.controls.licensePlate, vehicleSubmitted())
+            "
+          />
+          @if (plateConflict(); as conflict) {
+            <span class="field-error" role="alert">{{ conflict }}</span>
+          } @else if (errorFor(vehicleForm.controls.licensePlate, vehicleSubmitted()); as msg) {
+            <span class="field-error">{{ msg }}</span>
+          }
+        </label>
+        <label class="field">
+          Marke
+          <input
+            class="input"
+            formControlName="make"
+            placeholder="Volkswagen"
+            [attr.aria-invalid]="!!errorFor(vehicleForm.controls.make, vehicleSubmitted())"
+          />
+          @if (errorFor(vehicleForm.controls.make, vehicleSubmitted()); as msg) {
+            <span class="field-error">{{ msg }}</span>
+          }
+        </label>
+        <label class="field">
+          Modell
+          <input
+            class="input"
+            formControlName="model"
+            placeholder="Golf VIII"
+            [attr.aria-invalid]="!!errorFor(vehicleForm.controls.model, vehicleSubmitted())"
+          />
+          @if (errorFor(vehicleForm.controls.model, vehicleSubmitted()); as msg) {
+            <span class="field-error">{{ msg }}</span>
+          }
+        </label>
+        <label class="field">
+          Baujahr
+          <input
+            class="input"
+            formControlName="year"
+            inputmode="numeric"
+            placeholder="2021"
+            [attr.aria-invalid]="!!errorFor(vehicleForm.controls.year, vehicleSubmitted())"
+          />
+          @if (errorFor(vehicleForm.controls.year, vehicleSubmitted()); as msg) {
+            <span class="field-error">{{ msg }}</span>
+          }
+        </label>
+      </div>
+
+      @if (vehicleError(); as error) {
+        <p class="field-error" role="alert">{{ error }}</p>
+      }
+
+      <div class="row">
+        <button type="submit" class="btn btn-primary" [disabled]="pending()">
+          Fahrzeug anlegen
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="closeNewVehicle()">
+          Zurück zur Suche
+        </button>
+      </div>
+    </form>
+  }
+</section>
+
+<form
+  class="panel step"
+  [formGroup]="orderForm"
+  (ngSubmit)="createOrder()"
+  aria-labelledby="step2"
+  novalidate
+>
+  <h2 id="step2">2 · Fehlerbeschreibung</h2>
+  @if (selected(); as option) {
+    <p class="chosen">
+      Für <strong class="plate">{{ option.vehicle.licensePlate }}</strong> ·
+      {{ option.vehicle.make }} {{ option.vehicle.model }} · {{ option.customerName }}
+    </p>
+  }
+  <label class="field" for="description">Was hat der Kunde gemeldet?</label>
+  <textarea
+    id="description"
+    class="input"
+    rows="3"
+    formControlName="description"
+    [attr.aria-invalid]="!!errorFor(orderForm.controls.description, orderSubmitted())"
+  ></textarea>
+  @if (errorFor(orderForm.controls.description, orderSubmitted()); as msg) {
+    <span class="field-error">{{ msg }}</span>
+  }
+  <div class="row end">
+    <a routerLink="/board" class="btn btn-secondary">Abbrechen</a>
+    <button type="submit" class="btn btn-primary" [disabled]="pending()">Auftrag anlegen</button>
+  </div>
+</form>

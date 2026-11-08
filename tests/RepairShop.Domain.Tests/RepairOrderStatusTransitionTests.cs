@@ -109,6 +109,26 @@ public class RepairOrderStatusTransitionTests
     }
 
     [Test]
+    public void TransitionTo_Invoiced_StampsInvoiceTime()
+    {
+        var order = OrderInStatus(RepairOrderStatus.Completed);
+        Assert.That(order.InvoicedAtUtc, Is.Null, "not billed yet");
+
+        order.TransitionTo(RepairOrderStatus.Invoiced, Now.AddDays(3));
+
+        Assert.That(order.InvoicedAtUtc, Is.EqualTo(Now.AddDays(3)));
+    }
+
+    [TestCase(RepairOrderStatus.Received)]
+    [TestCase(RepairOrderStatus.InProgress)]
+    [TestCase(RepairOrderStatus.WaitingForParts)]
+    [TestCase(RepairOrderStatus.Completed)]
+    public void InvoicedAtUtc_IsOnlySetByInvoicing(RepairOrderStatus status)
+    {
+        Assert.That(OrderInStatus(status).InvoicedAtUtc, Is.Null);
+    }
+
+    [Test]
     public void CanTransitionTo_ReportsTheSameAnswerAsTransitionTo()
     {
         var order = OrderInStatus(RepairOrderStatus.WaitingForParts);
@@ -169,6 +189,25 @@ public class RepairOrderStatusTransitionTests
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(status), status, "Unhandled status");
+        }
+    }
+
+    [TestCase(RepairOrderStatus.Received, new[] { RepairOrderStatus.InProgress })]
+    [TestCase(RepairOrderStatus.InProgress, new[] { RepairOrderStatus.WaitingForParts, RepairOrderStatus.Completed })]
+    [TestCase(RepairOrderStatus.WaitingForParts, new[] { RepairOrderStatus.InProgress })]
+    [TestCase(RepairOrderStatus.Completed, new[] { RepairOrderStatus.Invoiced })]
+    [TestCase(RepairOrderStatus.Invoiced, new RepairOrderStatus[0])]
+    public void AllowedTargets_MatchWhatTransitionToAccepts(RepairOrderStatus status, RepairOrderStatus[] expected)
+    {
+        var order = OrderInStatus(status);
+
+        Assert.That(order.AllowedTargets, Is.EqualTo(expected));
+
+        // The list is not a second source of truth: it must agree with
+        // CanTransitionTo for every status, allowed or not.
+        foreach (var target in Enum.GetValues<RepairOrderStatus>())
+        {
+            Assert.That(order.CanTransitionTo(target), Is.EqualTo(expected.Contains(target)), $"{status} → {target}");
         }
     }
 }

@@ -33,6 +33,11 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
             logger.LogInformation("Resource not found: {Message}", ex.Message);
             await WriteProblemAsync(context, StatusCodes.Status404NotFound, "Resource not found", ex.Message);
         }
+        catch (ConflictException ex)
+        {
+            logger.LogInformation("Conflict: {Message}", ex.Message);
+            await WriteProblemAsync(context, StatusCodes.Status409Conflict, "Conflict", ex.Message);
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Unhandled exception for {Method} {Path}", context.Request.Method, context.Request.Path);

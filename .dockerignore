@@ -12,3 +12,4 @@ tests/
 *.user
 docs/
 README.md
+frontend/

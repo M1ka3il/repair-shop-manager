@@ -10,7 +10,30 @@ repair orders, repair orders carry labour and parts lines. The order lifecycle
 domain layer, so an invoiced job cannot be pushed back into production — the caller gets
 a business error, not a 500.
 
-Clone it, run `docker compose up`, open <http://localhost:8080>. Nothing else to install.
+Clone it, run `docker compose up`, open <http://localhost:4200> for the UI or
+<http://localhost:8080> for Swagger. Nothing else to install.
+
+![Board: repair orders by status](docs/board.png)
+
+<details>
+<summary>Dark mode</summary>
+
+![Board in dark mode](docs/board-dark.png)
+
+</details>
+
+<details>
+<summary>Order detail, new order, customers, revenue report</summary>
+
+![Order detail: lifecycle, line items, totals](docs/order-detail.png)
+
+![New order: find or register the vehicle](docs/new-order.png)
+
+![Customers and vehicles](docs/customers.png)
+
+![Revenue by customer](docs/report.png)
+
+</details>
 
 ---
 
@@ -41,7 +64,8 @@ cp .env.example .env      # then edit .env and set your own password
 docker compose up --build
 ```
 
-Then open <http://localhost:8080> — Swagger UI is served at the root. The database
+Then open <http://localhost:4200> for the Angular UI, or <http://localhost:8080>
+for Swagger UI. The database
 schema is created by EF Core migrations on startup and seeded with a handful of
 customers, vehicles and orders in different statuses, so the first request already
 returns something meaningful.
@@ -121,6 +145,7 @@ erDiagram
         int Status "lifecycle"
         datetime ReceivedAtUtc
         datetime CompletedAtUtc
+        datetime InvoicedAtUtc "set on invoicing"
         string Description
     }
     REPAIR_ITEM {
@@ -184,6 +209,17 @@ naming the rule — never a 500:
 }
 ```
 
+Clients do not need a copy of this table: every `RepairOrderDto` carries
+`allowedTransitions`, computed by the domain from the current status. The Angular board
+offers exactly those moves, and still shows the server's message if a move is rejected
+because someone else changed the order in the meantime.
+
+The transitions also record time: `Completed` stamps `CompletedAtUtc`, `Invoiced` stamps
+`InvoicedAtUtc` — the date revenue belongs to. The revenue report filters on it, so an
+order taken in on 31 October and billed on 6 November is November revenue. Orders
+invoiced before the column existed were backfilled from `CompletedAtUtc` by the
+migration, the closest date that was known.
+
 Related rules that live in the same place: line items cannot be added to or removed
 from a completed or invoiced order, a completed or invoiced order cannot be deleted
 (deleting billable work would be worse than editing it), and an invoiced order's
@@ -205,14 +241,19 @@ Swagger UI at <http://localhost:8080>, OpenAPI document at `/swagger/v1/swagger.
 | `PATCH` | `/api/repair-orders/{id}/status` | **Change status** — the dedicated lifecycle endpoint |
 | `POST` | `/api/repair-orders/{id}/items` | Book labour or a part |
 | `DELETE` | `/api/repair-orders/{id}/items/{itemId}` | Remove a line item |
-| `GET` | `/api/customers`, `/api/customers/{id}` | Customers incl. their vehicles (read-only) |
-| `GET` | `/api/vehicles` | All vehicles — useful for picking a `vehicleId` |
-| `GET` | `/api/reports/revenue-by-customer?from=&to=` | Revenue report (stored procedure) |
+| `GET` | `/api/customers`, `/api/customers/{id}` | Customers incl. their vehicles |
+| `POST` | `/api/customers` | Create a customer (**201**) |
+| `PUT` | `/api/customers/{id}` | Correct name and contact details |
+| `POST` | `/api/customers/{id}/vehicles` | Register a vehicle (**201**); **409** if the plate is taken |
+| `GET` | `/api/vehicles`, `/api/vehicles/{id}` | Vehicles — useful for picking a `vehicleId` |
+| `PUT` | `/api/vehicles/{id}` | Correct plate, make, model, year (owner is fixed); **409** on a taken plate |
+| `GET` | `/api/reports/revenue-by-customer?from=&to=` | Revenue report by invoice date (stored procedure) |
 | `GET` | `/health` | Liveness probe |
 
 Status codes are used deliberately: **201** on create with a `Location` header, **204**
 on delete, **400** on a rejected business rule or failed validation, **404** for a
-missing resource, **500** only for genuine defects.
+missing resource, **409** when the request collides with existing data (a license
+plate that is already registered), **500** only for genuine defects.
 
 ![Swagger UI of the Repair Shop API](docs/swagger.png)
 
@@ -299,12 +340,14 @@ With several instances this would race, so a real deployment moves migrations in
 separate step — the trade-off is stated in the code and switchable via
 `Database:AutoMigrate`.
 
-### No frontend?
+### Frontend: Angular, behind the same origin
 
-This is a backend service and is scoped as one; Swagger is the interface. Angular would
-double the effort and shift the centre of gravity away from what the repo is meant to
-show — domain logic, layering, operational maturity. It is on the "possible later" list,
-not the "missing" list.
+An Angular 22 app in [`frontend/`](frontend/README.md). nginx serves it and proxies
+`/api` to the backend, so the browser sees a single origin and the API needs no CORS
+configuration. The TypeScript types are generated from a committed OpenAPI snapshot,
+and a backend integration test fails when the API drifts from it — so a contract
+change cannot silently break the UI. Business rules are not duplicated in the
+frontend: it renders what the API allows and shows the API's own error messages.
 
 ---
 
@@ -318,7 +361,7 @@ Scope control is a design decision, so the omissions are listed rather than hidd
 | Inventory / stock | A domain in its own right; would dwarf the repair order |
 | Invoice generation (PDF, tax) | Tax law is a rabbit hole; `Invoiced` as a status is the interesting part |
 | Authentication (JWT) | Would be the right next step for production, but adds no domain depth |
-| Customer/vehicle write endpoints | Read-only is enough to exercise the repair-order flow; full master-data CRUD is volume, not signal |
+| Deleting customers and vehicles | Master data can be created and corrected, but not deleted: a vehicle with repair history must not vanish, for the same reason an invoiced order cannot be deleted. Changing a vehicle's owner is left out for the same reason |
 | Pagination, sorting, filtering beyond status | Straightforward to add, nothing to demonstrate |
 
 ---
@@ -334,6 +377,7 @@ dotnet test
 | `RepairShop.Domain.Tests` | Unit (NUnit) | Status transitions, item rules, `LicensePlate` — no database |
 | `RepairShop.Application.Tests` | Unit (NUnit + Moq) | Use-case orchestration with mocked repositories |
 | `RepairShop.IntegrationTests` | Integration (Testcontainers) | Endpoints end-to-end against a real SQL Server |
+| `frontend` (`npm test`) | Unit (Vitest) | Board rendering against a mocked HTTP backend, error mapping, status grouping |
 
 The emphasis is the status flow: every legal transition, every illegal one, and the
 terminal behaviour of `Invoiced` are covered explicitly, including the assertion that a
@@ -385,12 +429,13 @@ database just to read the model.
 │   ├── RepairShop.Application/     Use cases, DTOs, ports
 │   ├── RepairShop.Infrastructure/  EF Core, migrations, repositories, T-SQL report
 │   └── RepairShop.Api/             Controllers, middleware, Swagger, Dockerfile
+├── frontend/                       Angular 22 UI, nginx config, OpenAPI snapshot
 ├── tests/
 │   ├── RepairShop.Domain.Tests/        NUnit
 │   ├── RepairShop.Application.Tests/   NUnit + Moq
 │   └── RepairShop.IntegrationTests/    Testcontainers + SQL Server
 ├── .github/workflows/ci.yml        Build, test, docker build
-├── docker-compose.yml              SQL Server + API
+├── docker-compose.yml              SQL Server + API + web UI
 └── .env.example                    Template for the local password
 ```
 
@@ -402,7 +447,6 @@ Listed as a roadmap, not as gaps:
 
 - A decoupled `BackgroundService` with a queue (e.g. asynchronous invoice dispatch)
 - JWT authentication and role-based authorisation
-- An Angular frontend on top of the existing API
 
 ---
 

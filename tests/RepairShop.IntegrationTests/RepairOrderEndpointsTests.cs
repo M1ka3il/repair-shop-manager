@@ -59,6 +59,32 @@ public class RepairOrderEndpointsTests
         Assert.That(orders, Has.All.Matches<RepairOrderDto>(o => o.Status == RepairOrderStatus.Invoiced));
     }
 
+    /// <summary>
+    /// datetime2 has no offset, so without the UTC conventions EF Core reads
+    /// Kind=Unspecified and the JSON lacks the "Z" — a browser would then parse
+    /// every timestamp as local time. Checked on the raw JSON, after a real
+    /// round-trip through SQL Server, including a nullable timestamp.
+    /// </summary>
+    [Test]
+    public async Task Timestamps_AreSerialisedAsUtc()
+    {
+        var json = await _client.GetStringAsync("/api/repair-orders?status=Invoiced");
+        using var document = JsonDocument.Parse(json);
+
+        var orders = document.RootElement.EnumerateArray().ToList();
+        Assert.That(orders, Is.Not.Empty, "the seed contains invoiced orders");
+
+        Assert.Multiple(() =>
+        {
+            foreach (var order in orders)
+            {
+                Assert.That(order.GetProperty("receivedAtUtc").GetString(), Does.EndWith("Z"));
+                Assert.That(order.GetProperty("completedAtUtc").GetString(), Does.EndWith("Z"),
+                    "invoiced orders are completed, so the nullable timestamp is set too");
+            }
+        });
+    }
+
     [Test]
     public async Task GetRepairOrder_UnknownId_Returns404()
     {
@@ -89,6 +115,7 @@ public class RepairOrderEndpointsTests
 
         var created = await ReadAsync<RepairOrderDto>(createResponse);
         Assert.That(created.Status, Is.EqualTo(RepairOrderStatus.Received));
+        Assert.That(created.AllowedTransitions, Is.EqualTo(new[] { RepairOrderStatus.InProgress }));
 
         // Book labour and a part.
         var withItems = await PatchOrPostAsync<RepairOrderDto>(
@@ -106,6 +133,7 @@ public class RepairOrderEndpointsTests
         {
             Assert.That(invoiced.Status, Is.EqualTo(RepairOrderStatus.Invoiced));
             Assert.That(invoiced.CompletedAtUtc, Is.Not.Null);
+            Assert.That(invoiced.AllowedTransitions, Is.Empty, "Invoiced is terminal");
         });
 
         // And the rule that matters: no way back out of Invoiced — 400, not 500.
@@ -150,6 +178,94 @@ public class RepairOrderEndpointsTests
 
         var stillThere = await GetAsync<RepairOrderDto>($"/api/repair-orders/{created.Id}");
         Assert.That(stillThere.Status, Is.EqualTo(RepairOrderStatus.Invoiced));
+    }
+
+    /// <summary>
+    /// The path a UI takes for a walk-in customer: customer → vehicle → order.
+    /// Also covers plate normalisation and the unique index as seen over HTTP.
+    /// </summary>
+    [Test]
+    public async Task MasterData_CustomerVehicleOrder_HappyPathAndPlateConflict()
+    {
+        // A per-run plate, so re-running against the same container cannot collide.
+        var plate = $"HH-QA {Random.Shared.Next(1, 9999)}";
+
+        var customerResponse = await _client.PostAsJsonAsync("/api/customers", new
+        {
+            name = "Laufkundschaft GmbH",
+            email = "werkstatt@example.com"
+        });
+        Assert.That(customerResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        Assert.That(customerResponse.Headers.Location, Is.Not.Null);
+        var customer = await ReadAsync<CustomerDto>(customerResponse);
+
+        var vehicleResponse = await _client.PostAsJsonAsync($"/api/customers/{customer.Id}/vehicles", new
+        {
+            licensePlate = plate.ToLowerInvariant(),
+            make = "Skoda",
+            model = "Octavia",
+            year = 2019
+        });
+        Assert.That(vehicleResponse.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+        var vehicle = await ReadAsync<VehicleDto>(vehicleResponse);
+        Assert.That(vehicle.LicensePlate, Is.EqualTo(plate), "the server normalises the plate");
+
+        // Same plate on another vehicle → 409, not a 500 from the unique index.
+        var duplicate = await _client.PostAsJsonAsync($"/api/customers/{customer.Id}/vehicles", new
+        {
+            licensePlate = plate,
+            make = "Skoda",
+            model = "Fabia",
+            year = 2015
+        });
+        Assert.That(duplicate.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+
+        // Correcting the vehicle while keeping its own plate is fine.
+        var update = await _client.PutAsJsonAsync($"/api/vehicles/{vehicle.Id}", new
+        {
+            licensePlate = plate,
+            make = "Skoda",
+            model = "Octavia Combi",
+            year = 2019
+        });
+        Assert.That(update.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+
+        // And the new vehicle is immediately usable for an order.
+        var order = await _client.PostAsJsonAsync("/api/repair-orders", new
+        {
+            vehicleId = vehicle.Id,
+            description = "Inspektion"
+        });
+        Assert.That(order.StatusCode, Is.EqualTo(HttpStatusCode.Created));
+
+        var reloaded = await GetAsync<CustomerDto>($"/api/customers/{customer.Id}");
+        Assert.That(reloaded.Vehicles.Single().Model, Is.EqualTo("Octavia Combi"));
+    }
+
+    [Test]
+    public async Task AddVehicle_MalformedPlate_Returns400()
+    {
+        var response = await _client.PostAsJsonAsync("/api/customers/1/vehicles", new
+        {
+            licensePlate = "kein kennzeichen",
+            make = "VW",
+            model = "Golf",
+            year = 2020
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    [Test]
+    public async Task CreateCustomer_InvalidEmail_Returns400()
+    {
+        var response = await _client.PostAsJsonAsync("/api/customers", new
+        {
+            name = "Anna Becker",
+            email = "keine-mail"
+        });
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
     }
 
     [Test]
@@ -198,6 +314,43 @@ public class RepairOrderEndpointsTests
                     r => r.TotalRevenue == r.LabourRevenue + r.PartsRevenue),
                 "labour plus parts must equal the total");
         });
+    }
+
+    /// <summary>
+    /// Revenue belongs to the day it was billed. A seeded order received 11–12
+    /// days ago and invoiced now must appear in a report for the last hour —
+    /// filtered by intake date, it would not.
+    /// </summary>
+    [Test]
+    public async Task RevenueByCustomer_CountsOrdersByInvoiceDate()
+    {
+        var completed = await GetAsync<List<RepairOrderDto>>("/api/repair-orders?status=Completed");
+        var old = completed.First(o => o.ReceivedAtUtc < DateTime.UtcNow.AddDays(-1));
+
+        var invoiced = await ChangeStatusAsync(old.Id, RepairOrderStatus.Invoiced);
+        Assert.That(invoiced.InvoicedAtUtc, Is.EqualTo(DateTime.UtcNow).Within(TimeSpan.FromMinutes(1)));
+
+        var from = Uri.EscapeDataString(DateTime.UtcNow.AddHours(-1).ToString("O"));
+        var to = Uri.EscapeDataString(DateTime.UtcNow.AddHours(1).ToString("O"));
+        var report = await GetAsync<List<CustomerRevenueDto>>(
+            $"/api/reports/revenue-by-customer?from={from}&to={to}");
+
+        Assert.That(report.Select(r => r.CustomerName), Does.Contain(old.CustomerName));
+    }
+
+    /// <summary>
+    /// The period is a pair of instants. "2100-01-01T00:30:00+01:00" is
+    /// 2099-12-31T23:30Z, so a period ending there must still be accepted as
+    /// ending after a 2099-12-31T23:00Z start — proving the offset is applied
+    /// instead of being dropped (dropped, "from" would be after "to": 400).
+    /// </summary>
+    [Test]
+    public async Task RevenueByCustomer_HonoursOffsetsInThePeriod()
+    {
+        var response = await _client.GetAsync(
+            "/api/reports/revenue-by-customer?from=2099-12-31T23:00:00Z&to=2100-01-01T00:30:00%2B01:00");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
     }
 
     [Test]

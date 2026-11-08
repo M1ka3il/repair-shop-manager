@@ -57,6 +57,13 @@ public class RepairOrder
 
     public DateTime? CompletedAtUtc { get; private set; }
 
+    /// <summary>
+    /// When the order was billed — the date revenue belongs to. Set once by the
+    /// transition to <see cref="RepairOrderStatus.Invoiced"/>, which is terminal,
+    /// so it can never change afterwards.
+    /// </summary>
+    public DateTime? InvoicedAtUtc { get; private set; }
+
     public string Description { get; private set; }
 
     public IReadOnlyCollection<RepairItem> Items => _items.AsReadOnly();
@@ -69,6 +76,13 @@ public class RepairOrder
     /// whether it exists are part of the billing record and no longer editable.
     /// </summary>
     private bool IsWorkFinished => Status is RepairOrderStatus.Completed or RepairOrderStatus.Invoiced;
+
+    /// <summary>
+    /// The statuses reachable from the current one, in lifecycle order. Exposed so
+    /// a client can offer exactly these moves instead of keeping its own copy of
+    /// the transition table; <see cref="TransitionTo"/> still enforces them.
+    /// </summary>
+    public IReadOnlyList<RepairOrderStatus> AllowedTargets => AllowedTransitions[Status];
 
     /// <summary>True if <paramref name="target"/> is reachable from the current status.</summary>
     public bool CanTransitionTo(RepairOrderStatus target) =>
@@ -97,6 +111,10 @@ public class RepairOrder
         if (target == RepairOrderStatus.Completed)
         {
             CompletedAtUtc = nowUtc;
+        }
+        else if (target == RepairOrderStatus.Invoiced)
+        {
+            InvoicedAtUtc = nowUtc;
         }
     }
 

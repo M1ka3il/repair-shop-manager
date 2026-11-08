@@ -1,0 +1,1461 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Repair Shop API",
+    "description": "Repair shop management as a REST API. Customers own vehicles, vehicles have repair orders, repair orders carry labour and parts lines. The order lifecycle (Received \u2192 InProgress \u21C4 WaitingForParts \u2192 Completed \u2192 Invoiced) is enforced in the domain layer.",
+    "license": {
+      "name": "MIT"
+    },
+    "version": "v1"
+  },
+  "paths": {
+    "/api/customers": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Lists all customers including their vehicles.",
+        "responses": {
+          "200": {
+            "description": "The customers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Creates a customer without vehicles.",
+        "requestBody": {
+          "description": "Name and optional contact details.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCustomerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCustomerRequest"
+              }
+            },
+            "application/*\u002Bjson": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCustomerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new customer, with a Location header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/customers/{id}": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Gets one customer including their vehicles.",
+        "operationId": "GetCustomer",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The customer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No customer with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Corrects a customer\u0027s name and contact details.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The complete new state; omitted contact fields are cleared.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCustomerRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCustomerRequest"
+              }
+            },
+            "application/*\u002Bjson": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveCustomerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated customer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No customer with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/customers/{id}/vehicles": {
+      "post": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Registers a vehicle for an existing customer.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Customer id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Plate, make, model and year.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveVehicleRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveVehicleRequest"
+              }
+            },
+            "application/*\u002Bjson": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveVehicleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new vehicle, with a Location header.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the plate is malformed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No customer with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The plate is already registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vehicles/{id}": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Gets one vehicle.",
+        "operationId": "GetVehicle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Vehicle id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The vehicle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No vehicle with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Corrects a vehicle\u0027s plate, make, model or year. The owner cannot be changed.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Vehicle id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The complete new state.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveVehicleRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveVehicleRequest"
+              }
+            },
+            "application/*\u002Bjson": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveVehicleRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated vehicle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed or the plate is malformed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No vehicle with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The new plate belongs to another vehicle.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vehicles": {
+      "get": {
+        "tags": [
+          "Customers"
+        ],
+        "summary": "Lists all vehicles across customers \u2014 useful for picking a VehicleId when creating an order.",
+        "responses": {
+          "200": {
+            "description": "The vehicles.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VehicleDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "operationId": "Health",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/repair-orders": {
+      "get": {
+        "tags": [
+          "RepairOrders"
+        ],
+        "summary": "Lists repair orders, newest first.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Optional status filter, e.g. \u0060InProgress\u0060.",
+            "schema": {
+              "$ref": "#/components/schemas/RepairOrderStatus"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The matching orders.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RepairOrderDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "RepairOrders"
+        ],
+        "summary": "Creates a repair order for an existing vehicle. It starts in status \u0060Received\u0060.",
+        "requestBody": {
+          "description": "Vehicle and problem description.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRepairOrderRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRepairOrderRequest"
+              }
+            },
+            "application/*\u002Bjson": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRepairOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created; the Location header points at the new order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepairOrderDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The payload failed validation.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The referenced vehicle does not exist.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/repair-orders/{id}": {
+      "get": {
+        "tags": [
+          "RepairOrders"
+        ],
+        "summary": "Gets one repair order including its labour and parts lines.",
+        "operationId": "GetRepairOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepairOrderDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No order with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "RepairOrders"
+        ],
+        "summary": "Updates the problem description. Not usable for status changes \u2014 see \u0060PATCH /status\u0060.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "New description.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRepairOrderRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRepairOrderRequest"
+              }
+            },
+            "application/*\u002Bjson": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRepairOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepairOrderDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed, or the order is already invoiced.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No order with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "RepairOrders"
+        ],
+        "summary": "Deletes a repair order and its line items.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "400": {
+            "description": "The order is completed or invoiced and can no longer be deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No order with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/repair-orders/{id}/status": {
+      "patch": {
+        "tags": [
+          "RepairOrders"
+        ],
+        "summary": "Moves the order to another status.\n\nA dedicated endpoint rather than a field on the generic PUT: the status is\nnot an editable attribute but a transition that either is or is not allowed\n(Received \u2192 InProgress \u21C4 WaitingForParts \u2192 Completed \u2192 Invoiced). An\nillegal move is a business error and answered with 400, never a 500.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Target status.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeStatusRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeStatusRequest"
+              }
+            },
+            "application/*\u002Bjson": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The order in its new status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepairOrderDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The transition is not allowed from the current status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No order with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/repair-orders/{id}/items": {
+      "post": {
+        "tags": [
+          "RepairOrders"
+        ],
+        "summary": "Books labour or a spare part onto the order.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "The line to add.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRepairItemRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRepairItemRequest"
+              }
+            },
+            "application/*\u002Bjson": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRepairItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The order including the new line.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepairOrderDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed, or the order is completed or invoiced.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No order with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/repair-orders/{id}/items/{itemId}": {
+      "delete": {
+        "tags": [
+          "RepairOrders"
+        ],
+        "summary": "Removes a line item from the order.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Order id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "description": "Line item id.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The order without that line.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepairOrderDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The order is completed or invoiced, or the item belongs to another order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No order with that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reports/revenue-by-customer": {
+      "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Revenue per customer over invoiced orders, split into labour and parts,\nhighest revenue first.",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Start of the period (inclusive). ISO 8601; with an offset it is converted to UTC, without one it is taken as UTC. Defaults to one year before to.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "End of the period (inclusive, a point in time \u2014 send the end of the last day, not just its date). Same format as from. Defaults to now.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One row per customer with revenue in the period.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CustomerRevenueDto"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "from is after to.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AddRepairItemRequest": {
+        "required": [
+          "designation",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/RepairItemType"
+          },
+          "designation": {
+            "maxLength": 200,
+            "minLength": 2,
+            "type": "string",
+            "description": "What was done or fitted.",
+            "example": "Bremsbel\u00E4ge vorne wechseln"
+          },
+          "unitPrice": {
+            "maximum": 1000000,
+            "minimum": 0,
+            "type": "number",
+            "description": "Net price per hour or per piece.",
+            "format": "double",
+            "example": 89.00
+          },
+          "quantity": {
+            "maximum": 100000,
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Hours for labour, pieces for parts.",
+            "format": "double",
+            "example": 1.5
+          }
+        },
+        "additionalProperties": false,
+        "description": "Payload for booking labour or a part onto an order."
+      },
+      "ChangeStatusRequest": {
+        "required": [
+          "targetStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "targetStatus": {
+            "$ref": "#/components/schemas/RepairOrderStatus"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Payload for the dedicated status-change endpoint."
+      },
+      "CreateRepairOrderRequest": {
+        "required": [
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "vehicleId": {
+            "maximum": 2147483647,
+            "minimum": 1,
+            "type": "integer",
+            "description": "Id of an existing vehicle.",
+            "format": "int32",
+            "example": 1
+          },
+          "description": {
+            "maxLength": 1000,
+            "minLength": 3,
+            "type": "string",
+            "description": "What the customer reported.",
+            "example": "Bremsen quietschen beim Bremsen"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Payload for creating a repair order."
+      },
+      "CustomerDto": {
+        "required": [
+          "id",
+          "name",
+          "email",
+          "phone",
+          "vehicles"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Customer primary key.",
+            "format": "int32"
+          },
+          "name": {
+            "type": "string",
+            "description": "Person or company name."
+          },
+          "email": {
+            "type": "string",
+            "description": "Contact e-mail, if known.",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "description": "Contact phone number, if known.",
+            "nullable": true
+          },
+          "vehicles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VehicleDto"
+            },
+            "description": "Vehicles owned by this customer."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A customer with their vehicles, flattened for the API."
+      },
+      "CustomerRevenueDto": {
+        "required": [
+          "customerId",
+          "customerName",
+          "orderCount",
+          "labourRevenue",
+          "partsRevenue",
+          "totalRevenue"
+        ],
+        "type": "object",
+        "properties": {
+          "customerId": {
+            "type": "integer",
+            "description": "Customer primary key.",
+            "format": "int32"
+          },
+          "customerName": {
+            "type": "string",
+            "description": "Customer name at the time of the query."
+          },
+          "orderCount": {
+            "type": "integer",
+            "description": "Number of invoiced orders in the period.",
+            "format": "int32"
+          },
+          "labourRevenue": {
+            "type": "number",
+            "description": "Net revenue from labour lines.",
+            "format": "double"
+          },
+          "partsRevenue": {
+            "type": "number",
+            "description": "Net revenue from spare-part lines.",
+            "format": "double"
+          },
+          "totalRevenue": {
+            "type": "number",
+            "description": "Sum of labour and parts.",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "One row of the revenue-per-customer report."
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": {}
+      },
+      "RepairItemDto": {
+        "required": [
+          "id",
+          "type",
+          "designation",
+          "unitPrice",
+          "quantity",
+          "lineTotal"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Item primary key.",
+            "format": "int32"
+          },
+          "type": {
+            "$ref": "#/components/schemas/RepairItemType"
+          },
+          "designation": {
+            "type": "string",
+            "description": "Free-text description of the line."
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Price per hour or per piece, net.",
+            "format": "double"
+          },
+          "quantity": {
+            "type": "number",
+            "description": "Hours for labour, pieces for parts.",
+            "format": "double"
+          },
+          "lineTotal": {
+            "type": "number",
+            "description": "UnitPrice \u00D7 Quantity.",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A single labour or parts line."
+      },
+      "RepairItemType": {
+        "enum": [
+          "Labour",
+          "Part"
+        ],
+        "type": "string",
+        "description": "Kind of line item on a repair order."
+      },
+      "RepairOrderDto": {
+        "required": [
+          "id",
+          "vehicleId",
+          "licensePlate",
+          "customerName",
+          "status",
+          "receivedAtUtc",
+          "completedAtUtc",
+          "invoicedAtUtc",
+          "description",
+          "totalPrice",
+          "items",
+          "allowedTransitions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Order primary key.",
+            "format": "int32"
+          },
+          "vehicleId": {
+            "type": "integer",
+            "description": "Vehicle the order belongs to.",
+            "format": "int32"
+          },
+          "licensePlate": {
+            "type": "string",
+            "description": "Plate of that vehicle, for readability.",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "description": "Owner of that vehicle, for readability.",
+            "nullable": true
+          },
+          "status": {
+            "$ref": "#/components/schemas/RepairOrderStatus"
+          },
+          "receivedAtUtc": {
+            "type": "string",
+            "description": "When the vehicle was accepted.",
+            "format": "date-time"
+          },
+          "completedAtUtc": {
+            "type": "string",
+            "description": "When the work was finished, if it was.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "invoicedAtUtc": {
+            "type": "string",
+            "description": "When the order was billed, if it was. Revenue is reported by this date.",
+            "format": "date-time",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "description": "What the customer reported."
+          },
+          "totalPrice": {
+            "type": "number",
+            "description": "Sum of all line items, net.",
+            "format": "double"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepairItemDto"
+            },
+            "description": "Labour and parts booked on this order."
+          },
+          "allowedTransitions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RepairOrderStatus"
+            },
+            "description": "Statuses this order may move to next, computed by the domain. Empty once\ninvoiced. Clients offer these instead of duplicating the lifecycle rules."
+          }
+        },
+        "additionalProperties": false,
+        "description": "A repair order as returned by the API."
+      },
+      "RepairOrderStatus": {
+        "enum": [
+          "Received",
+          "InProgress",
+          "WaitingForParts",
+          "Completed",
+          "Invoiced"
+        ],
+        "type": "string",
+        "description": "Lifecycle of a repair order. Values are explicit so that reordering the enum\nlater cannot silently rewrite persisted data."
+      },
+      "SaveCustomerRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 2,
+            "type": "string",
+            "description": "Person or company name.",
+            "example": "Anna Becker"
+          },
+          "email": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "description": "Contact e-mail; optional.",
+            "format": "email",
+            "nullable": true,
+            "example": "anna.becker@example.com"
+          },
+          "phone": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Contact phone number; optional.",
+            "nullable": true,
+            "example": "\u002B49 89 1234567"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Payload for creating or editing a customer."
+      },
+      "SaveVehicleRequest": {
+        "required": [
+          "licensePlate",
+          "make",
+          "model"
+        ],
+        "type": "object",
+        "properties": {
+          "licensePlate": {
+            "maxLength": 15,
+            "minLength": 0,
+            "type": "string",
+            "description": "German plate; normalised on the server (trimmed, upper-cased).",
+            "example": "M-AB 1234"
+          },
+          "make": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Manufacturer.",
+            "example": "Volkswagen"
+          },
+          "model": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "description": "Model name.",
+            "example": "Golf VIII"
+          },
+          "year": {
+            "type": "integer",
+            "description": "Year of construction.",
+            "format": "int32",
+            "example": 2021
+          }
+        },
+        "additionalProperties": false,
+        "description": "Payload for registering or editing a vehicle."
+      },
+      "UpdateRepairOrderRequest": {
+        "required": [
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "maxLength": 1000,
+            "minLength": 3,
+            "type": "string",
+            "description": "Corrected or extended problem description.",
+            "example": "Bremsbel\u00E4ge vorne verschlissen, Scheiben gepr\u00FCft"
+          }
+        },
+        "additionalProperties": false,
+        "description": "Payload for editing the free-text part of an order."
+      },
+      "ValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "detail": {
+            "type": "string",
+            "nullable": true
+          },
+          "instance": {
+            "type": "string",
+            "nullable": true
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "additionalProperties": {}
+      },
+      "VehicleDto": {
+        "required": [
+          "id",
+          "customerId",
+          "licensePlate",
+          "make",
+          "model",
+          "year"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Vehicle primary key.",
+            "format": "int32"
+          },
+          "customerId": {
+            "type": "integer",
+            "description": "Owning customer.",
+            "format": "int32"
+          },
+          "licensePlate": {
+            "type": "string",
+            "description": "Normalised plate, e.g. \u0022M-AB 1234\u0022."
+          },
+          "make": {
+            "type": "string",
+            "description": "Manufacturer."
+          },
+          "model": {
+            "type": "string",
+            "description": "Model name."
+          },
+          "year": {
+            "type": "integer",
+            "description": "Year of construction.",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false,
+        "description": "A vehicle as returned by the API."
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Customers"
+    },
+    {
+      "name": "Health"
+    },
+    {
+      "name": "RepairOrders"
+    },
+    {
+      "name": "Reports"
+    }
+  ]
+}

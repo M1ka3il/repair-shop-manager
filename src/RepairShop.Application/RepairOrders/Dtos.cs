@@ -11,9 +11,14 @@ namespace RepairShop.Application.RepairOrders;
 /// <param name="Status">Current lifecycle status.</param>
 /// <param name="ReceivedAtUtc">When the vehicle was accepted.</param>
 /// <param name="CompletedAtUtc">When the work was finished, if it was.</param>
+/// <param name="InvoicedAtUtc">When the order was billed, if it was. Revenue is reported by this date.</param>
 /// <param name="Description">What the customer reported.</param>
 /// <param name="TotalPrice">Sum of all line items, net.</param>
 /// <param name="Items">Labour and parts booked on this order.</param>
+/// <param name="AllowedTransitions">
+/// Statuses this order may move to next, computed by the domain. Empty once
+/// invoiced. Clients offer these instead of duplicating the lifecycle rules.
+/// </param>
 public record RepairOrderDto(
     int Id,
     int VehicleId,
@@ -22,9 +27,11 @@ public record RepairOrderDto(
     RepairOrderStatus Status,
     DateTime ReceivedAtUtc,
     DateTime? CompletedAtUtc,
+    DateTime? InvoicedAtUtc,
     string Description,
     decimal TotalPrice,
-    IReadOnlyList<RepairItemDto> Items);
+    IReadOnlyList<RepairItemDto> Items,
+    IReadOnlyList<RepairOrderStatus> AllowedTransitions);
 
 /// <summary>A single labour or parts line.</summary>
 /// <param name="Id">Item primary key.</param>

@@ -1,0 +1,294 @@
+<div class="page-head">
+  <h1>Kunden &amp; Fahrzeuge</h1>
+  <a class="btn btn-secondary" routerLink="/customers/new">+ Kunde anlegen</a>
+</div>
+
+@if (loadError(); as e) {
+  <div class="alert" role="alert">
+    <div>
+      <strong>{{ e.title }}</strong>
+      <span>{{ e.detail }}</span>
+    </div>
+    <button type="button" class="btn btn-secondary" (click)="data.reload()">
+      Erneut versuchen
+    </button>
+  </div>
+}
+
+<app-notice [notice]="notice()" />
+
+<div class="layout">
+  <nav class="panel list" aria-label="Kundenliste">
+    <label class="field" for="customer-search">Suche</label>
+    <input
+      id="customer-search"
+      class="input"
+      type="search"
+      placeholder="Name oder Kennzeichen"
+      autocomplete="off"
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+    />
+    <ul [attr.aria-busy]="data.isLoading()">
+      @for (customer of filtered(); track customer.id) {
+        <li>
+          <a
+            class="entry"
+            [routerLink]="['/customers', customer.id]"
+            [class.entry-current]="customer.id === id()"
+            [attr.aria-current]="customer.id === id() ? 'page' : null"
+          >
+            <span class="entry-name">{{ customer.name }}</span>
+            <span class="entry-plates">
+              @for (vehicle of customer.vehicles; track vehicle.id; let last = $last) {
+                {{ vehicle.licensePlate }}{{ last ? '' : ' · ' }}
+              } @empty {
+                kein Fahrzeug
+              }
+            </span>
+          </a>
+        </li>
+      } @empty {
+        @if (!data.isLoading()) {
+          <li class="muted">Kein Kunde gefunden.</li>
+        }
+      }
+    </ul>
+  </nav>
+
+  <div class="detail">
+    @if (creating() || selected(); as _) {
+      <form
+        class="panel"
+        [formGroup]="customerForm"
+        (ngSubmit)="saveCustomer()"
+        aria-labelledby="customer-h"
+        novalidate
+      >
+        <h2 id="customer-h">
+          @if (selected(); as c) {
+            {{ c.name }} <span class="muted id">Kunde #{{ c.id }}</span>
+          } @else {
+            Neuer Kunde
+          }
+        </h2>
+        <div class="grid">
+          <label class="field">
+            Name
+            <input
+              class="input"
+              formControlName="name"
+              [attr.aria-invalid]="!!errorFor(customerForm.controls.name, customerSubmitted())"
+            />
+            @if (errorFor(customerForm.controls.name, customerSubmitted()); as msg) {
+              <span class="field-error">{{ msg }}</span>
+            }
+          </label>
+          <label class="field">
+            <span>E-Mail <span class="optional">(optional)</span></span>
+            <input
+              class="input"
+              type="email"
+              formControlName="email"
+              [attr.aria-invalid]="!!errorFor(customerForm.controls.email, customerSubmitted())"
+            />
+            @if (errorFor(customerForm.controls.email, customerSubmitted()); as msg) {
+              <span class="field-error">{{ msg }}</span>
+            }
+          </label>
+          <label class="field">
+            <span>Telefon <span class="optional">(optional)</span></span>
+            <input class="input" type="tel" formControlName="phone" />
+          </label>
+        </div>
+        <div class="row">
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="pending() || (!creating() && customerForm.pristine)"
+          >
+            {{ creating() ? 'Kunde anlegen' : 'Speichern' }}
+          </button>
+          @if (creating()) {
+            <a class="btn btn-secondary" routerLink="/customers">Abbrechen</a>
+          }
+        </div>
+      </form>
+    }
+
+    @if (selected(); as customer) {
+      <section class="panel" aria-labelledby="vehicles-h">
+        <h2 id="vehicles-h">
+          Fahrzeuge <span class="muted id">{{ customer.vehicles.length }}</span>
+        </h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th scope="col">Kennzeichen</th>
+                <th scope="col">Fahrzeug</th>
+                <th scope="col">Baujahr</th>
+                <th scope="col"><span class="sr-only">Aktionen</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (vehicle of customer.vehicles; track vehicle.id) {
+                @if (vehicle.id === editingVehicleId()) {
+                  <tr>
+                    <td colspan="4">
+                      <form
+                        class="vehicle-form"
+                        [formGroup]="editVehicleForm"
+                        (ngSubmit)="saveVehicle()"
+                        [attr.aria-label]="'Fahrzeug ' + vehicle.licensePlate + ' bearbeiten'"
+                        novalidate
+                      >
+                        <ng-container
+                          [ngTemplateOutlet]="vehicleFields"
+                          [ngTemplateOutletContext]="{
+                            form: editVehicleForm,
+                            submitted: editSubmitted(),
+                            conflict: editConflict(),
+                          }"
+                        />
+                        @if (editError(); as error) {
+                          <p class="field-error wide" role="alert">{{ error }}</p>
+                        }
+                        <div class="row wide">
+                          <button type="submit" class="btn btn-primary" [disabled]="pending()">
+                            Speichern
+                          </button>
+                          <button type="button" class="btn btn-secondary" (click)="cancelEdit()">
+                            Abbrechen
+                          </button>
+                        </div>
+                      </form>
+                    </td>
+                  </tr>
+                } @else {
+                  <tr>
+                    <td class="plate">{{ vehicle.licensePlate }}</td>
+                    <td>{{ vehicle.make }} {{ vehicle.model }}</td>
+                    <td>{{ vehicle.year }}</td>
+                    <td class="actions">
+                      <a
+                        [routerLink]="['/orders/new']"
+                        [queryParams]="{ vehicleId: vehicle.id }"
+                        [attr.aria-label]="'Auftrag für ' + vehicle.licensePlate + ' anlegen'"
+                        >Auftrag anlegen</a
+                      >
+                      <button
+                        type="button"
+                        class="link-btn"
+                        (click)="startEdit(vehicle)"
+                        [attr.aria-label]="'Fahrzeug ' + vehicle.licensePlate + ' bearbeiten'"
+                      >
+                        Bearbeiten
+                      </button>
+                    </td>
+                  </tr>
+                }
+              } @empty {
+                <tr>
+                  <td colspan="4" class="muted">Noch kein Fahrzeug.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <form
+          class="vehicle-form add"
+          [formGroup]="newVehicleForm"
+          (ngSubmit)="addVehicle()"
+          aria-label="Fahrzeug hinzufügen"
+          novalidate
+        >
+          <ng-container
+            [ngTemplateOutlet]="vehicleFields"
+            [ngTemplateOutletContext]="{
+              form: newVehicleForm,
+              submitted: newVehicleSubmitted(),
+              conflict: newVehicleConflict(),
+            }"
+          />
+          @if (newVehicleError(); as error) {
+            <p class="field-error wide" role="alert">{{ error }}</p>
+          }
+          <div class="row wide">
+            <button type="submit" class="btn btn-primary" [disabled]="pending()">
+              Fahrzeug hinzufügen
+            </button>
+          </div>
+        </form>
+      </section>
+    } @else if (notFound()) {
+      <div class="panel">
+        <h2>Kunde #{{ id() }} nicht gefunden</h2>
+        <a routerLink="/customers">Zur Kundenliste</a>
+      </div>
+    } @else if (!creating()) {
+      <div class="panel empty">
+        <p class="muted">Kunden links auswählen oder neu anlegen.</p>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Plate, make, model, year: shared by "add" and "edit" so both behave the same. -->
+<ng-template #vehicleFields let-form="form" let-submitted="submitted" let-conflict="conflict">
+  <ng-container [formGroup]="form">
+    <label class="field">
+      Kennzeichen
+      <input
+        class="input plate"
+        formControlName="licensePlate"
+        placeholder="M-AB 1234"
+        autocomplete="off"
+        [attr.aria-invalid]="!!conflict || !!errorFor(form.controls.licensePlate, submitted)"
+      />
+      @if (conflict) {
+        <span class="field-error" role="alert">{{ conflict }}</span>
+      } @else if (errorFor(form.controls.licensePlate, submitted); as msg) {
+        <span class="field-error">{{ msg }}</span>
+      }
+    </label>
+    <label class="field">
+      Marke
+      <input
+        class="input"
+        formControlName="make"
+        placeholder="Volkswagen"
+        [attr.aria-invalid]="!!errorFor(form.controls.make, submitted)"
+      />
+      @if (errorFor(form.controls.make, submitted); as msg) {
+        <span class="field-error">{{ msg }}</span>
+      }
+    </label>
+    <label class="field">
+      Modell
+      <input
+        class="input"
+        formControlName="model"
+        placeholder="Golf VIII"
+        [attr.aria-invalid]="!!errorFor(form.controls.model, submitted)"
+      />
+      @if (errorFor(form.controls.model, submitted); as msg) {
+        <span class="field-error">{{ msg }}</span>
+      }
+    </label>
+    <label class="field">
+      Baujahr
+      <input
+        class="input"
+        formControlName="year"
+        inputmode="numeric"
+        placeholder="2021"
+        [attr.aria-invalid]="!!errorFor(form.controls.year, submitted)"
+      />
+      @if (errorFor(form.controls.year, submitted); as msg) {
+        <span class="field-error">{{ msg }}</span>
+      }
+    </label>
+  </ng-container>
+</ng-template>

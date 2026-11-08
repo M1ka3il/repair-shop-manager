@@ -1,0 +1,101 @@
+<div class="page-head">
+  <h1>Aufträge</h1>
+  <p class="muted">Karte auswählen, um den Status zu ändern.</p>
+</div>
+
+@if (error(); as e) {
+  <div class="alert" role="alert">
+    <div>
+      <strong>{{ e.title }}</strong>
+      <span>{{ e.detail }}</span>
+    </div>
+    <button type="button" class="btn btn-secondary" (click)="orders.reload()">
+      Erneut versuchen
+    </button>
+  </div>
+}
+
+@if (selected(); as order) {
+  <section class="action-bar" aria-label="Statuswechsel">
+    <div class="ab-info">
+      <span class="ab-label">Auftrag #{{ order.id }}</span>
+      <span class="plate">{{ order.licensePlate }} · {{ statusMeta(order.status).label }}</span>
+    </div>
+    @if (targets().length > 0) {
+      <span>Verschieben nach:</span>
+      @for (target of targets(); track target.status) {
+        <button
+          type="button"
+          class="btn btn-target"
+          [style.--target]="'var(' + target.colorVar + ')'"
+          [disabled]="pending()"
+          (click)="move(target.status)"
+        >
+          {{ target.label }}
+        </button>
+      }
+    } @else {
+      <span class="muted">Endstatus – kein weiterer Statuswechsel möglich.</span>
+    }
+    <a class="ab-details" [routerLink]="['/orders', order.id]">Details öffnen →</a>
+    <button type="button" class="ab-close" aria-label="Auswahl aufheben" (click)="clearSelection()">
+      ×
+    </button>
+  </section>
+}
+
+<app-notice [notice]="notice()" />
+
+<div class="columns" [attr.aria-busy]="orders.isLoading()">
+  @for (column of columns(); track column.status) {
+    <section
+      class="column"
+      [attr.aria-labelledby]="'col-' + column.status"
+      [style.--column-accent]="'var(' + column.colorVar + ')'"
+    >
+      <header class="column-head">
+        <span
+          class="dot"
+          aria-hidden="true"
+          [style.background]="'var(' + column.colorVar + ')'"
+        ></span>
+        <h2 [id]="'col-' + column.status">{{ column.label }}</h2>
+        <span class="count">{{ column.orders.length }}</span>
+      </header>
+
+      @for (order of column.orders; track order.id) {
+        <article class="card" [class.selected]="order.id === selectedId()">
+          <button
+            type="button"
+            class="card-select"
+            [attr.aria-pressed]="order.id === selectedId()"
+            (click)="select(order)"
+          >
+            <span class="card-top">
+              <span class="plate">{{ order.licensePlate }}</span>
+              @if (isWorkFinished(order.status)) {
+                <span class="lock" title="Arbeit abgeschlossen">gesperrt</span>
+              }
+              <span class="id">#{{ order.id }}</span>
+            </span>
+            <span class="customer">{{ order.customerName }}</span>
+            <span class="desc">{{ order.description }}</span>
+          </button>
+          <span class="card-foot">
+            <span>{{ order.receivedAtUtc | date: 'dd.MM.yyyy' }}</span>
+            <strong>{{ order.totalPrice | currency: 'EUR' }}</strong>
+            <a
+              [routerLink]="['/orders', order.id]"
+              [attr.aria-label]="'Auftrag ' + order.id + ' öffnen'"
+              >Details</a
+            >
+          </span>
+        </article>
+      } @empty {
+        @if (!orders.isLoading()) {
+          <p class="empty">Keine Aufträge</p>
+        }
+      }
+    </section>
+  }
+</div>
